@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "347117961120",
+    "project_id": "edu-nova-bd",
+    "storage_bucket": "edu-nova-bd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347117961120:android:c432c91f39e68b8465eec5",
+        "android_client_info": {
+          "package_name": "com.sofolit.edunova"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "347117961120-9q6l1ba6ng757g90qsnd6sibd8s18662.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjZ4NLS5vxiLByi7Dte14BtKcfdqu8mQk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "347117961120-9q6l1ba6ng757g90qsnd6sibd8s18662.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
