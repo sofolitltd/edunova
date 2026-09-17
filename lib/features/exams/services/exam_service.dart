@@ -57,6 +57,8 @@ class ExamQuestion {
   final String optionB;
   final String optionC;
   final String optionD;
+  /// 1-indexed (1=A, 2=B, 3=C, 4=D), 0 if not provided by the endpoint.
+  final int correctOption;
 
   ExamQuestion({
     required this.id,
@@ -66,7 +68,16 @@ class ExamQuestion {
     required this.optionB,
     required this.optionC,
     required this.optionD,
+    this.correctOption = 0,
   });
+
+  String get correctLetter => switch (correctOption) {
+        1 => 'A',
+        2 => 'B',
+        3 => 'C',
+        4 => 'D',
+        _ => '',
+      };
 
   factory ExamQuestion.fromJson(Map<String, dynamic> json) {
     return ExamQuestion(
@@ -77,6 +88,7 @@ class ExamQuestion {
       optionB: json['option_b'] ?? '',
       optionC: json['option_c'] ?? '',
       optionD: json['option_d'] ?? '',
+      correctOption: json['correct_option'] ?? 0,
     );
   }
 }
@@ -101,14 +113,20 @@ class ExamResult {
   });
 
   factory ExamResult.fromJson(Map<String, dynamic> json) {
+    final totalQuestions = json['total_questions'] ?? 0;
+    final correctAnswers = json['score'] ?? json['correct_answers'] ?? 0;
     return ExamResult(
       id: json['id'] ?? 0,
       examId: json['exam_id'] ?? 0,
       examTitle: json['exam_title'] ?? '',
-      totalQuestions: json['total_questions'] ?? 0,
-      correctAnswers: json['correct_answers'] ?? 0,
-      percentage: (json['percentage'] ?? 0).toDouble(),
-      submittedAt: json['submitted_at'] ?? '',
+      totalQuestions: totalQuestions,
+      correctAnswers: correctAnswers,
+      percentage: json['percentage'] != null
+          ? (json['percentage']).toDouble()
+          : (totalQuestions > 0
+              ? (correctAnswers / totalQuestions) * 100
+              : 0.0),
+      submittedAt: json['submitted_at'] ?? json['completed_at'] ?? '',
     );
   }
 }
@@ -135,12 +153,11 @@ class ExamService {
 
   Future<List<Exam>> getLiveExams({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/exams/live'),
+      Uri.parse('$_baseUrl/live-exams'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body);
-      final exams = data['exams'] as List? ?? [];
+      final exams = jsonDecode(response.body) as List? ?? [];
       return exams.map<Exam>((e) => Exam.fromJson(e)).toList();
     }
     return [];
@@ -152,8 +169,7 @@ class ExamService {
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body);
-      final questions = data['questions'] as List? ?? [];
+      final questions = jsonDecode(response.body) as List? ?? [];
       return questions.map<ExamQuestion>((q) => ExamQuestion.fromJson(q)).toList();
     }
     return [];
@@ -161,18 +177,14 @@ class ExamService {
 
   Future<void> submitExamResult({
     required int examId,
-    required Map<int, String> answers,
+    required int score,
+    required int totalQuestions,
     String? token,
   }) async {
-    final answerList = answers.entries.map((e) => {
-      'question_id': e.key,
-      'selected_option': e.value,
-    }).toList();
-
     final response = await _client.post(
       Uri.parse('$_baseUrl/exams/$examId/submit'),
       headers: _headers(token: token),
-      body: jsonEncode({'answers': answerList}),
+      body: jsonEncode({'score': score, 'total_questions': totalQuestions}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final data = jsonDecode(response.body);
@@ -182,12 +194,11 @@ class ExamService {
 
   Future<List<ExamResult>> getExamResults({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/exams/results'),
+      Uri.parse('$_baseUrl/my-exam-results'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body);
-      final results = data['results'] as List? ?? [];
+      final results = jsonDecode(response.body) as List? ?? [];
       return results.map<ExamResult>((r) => ExamResult.fromJson(r)).toList();
     }
     return [];

@@ -1,1 +1,57 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"edu-nova-bd","appId":"1:347117961120:android:c432c91f39e68b8465eec5","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"edu-nova-bd","configurations":{"android":"1:347117961120:android:c432c91f39e68b8465eec5","web":"1:347117961120:web:c0574b4af775d36c65eec5"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "edu-nova-bd",
+          "appId": "1:347117961120:android:c432c91f39e68b8465eec5",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "edu-nova-bd",
+          "configurations": {
+            "android": "1:347117961120:android:c432c91f39e68b8465eec5",
+            "web": "1:347117961120:web:c0574b4af775d36c65eec5"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "target": "edunovacare",
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/assets/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "/canvaskit/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      }
+    ]
+  }
+}

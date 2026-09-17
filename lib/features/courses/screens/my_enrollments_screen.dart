@@ -8,6 +8,7 @@ import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_scaffold.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../services/course_service.dart';
 
@@ -109,8 +110,7 @@ class _MyEnrollmentsScreenState extends ConsumerState<MyEnrollmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    return AppScaffold(
       appBar: const AppAppBar(title: 'আমার এনরোলমেন্ট'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

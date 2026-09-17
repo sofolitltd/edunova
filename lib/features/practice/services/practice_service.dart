@@ -50,6 +50,13 @@ class QuizQuestion {
   }
 }
 
+class QuizAttemptResult {
+  final bool correct;
+  final String correctMeaning;
+
+  QuizAttemptResult({required this.correct, required this.correctMeaning});
+}
+
 class SentenceExercise {
   final int id;
   final String classLevel;
@@ -175,7 +182,7 @@ class PracticeService {
     return [];
   }
 
-  Future<bool> submitQuizAttempt(String? token, int wordId, String selectedText) async {
+  Future<QuizAttemptResult> submitQuizAttempt(String? token, int wordId, String selectedText) async {
     final response = await _client.post(
       Uri.parse('$_baseUrl/practice/quiz/attempt'),
       headers: _headers(token),
@@ -183,9 +190,12 @@ class PracticeService {
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final data = jsonDecode(response.body);
-      return data['correct'] ?? false;
+      return QuizAttemptResult(
+        correct: data['correct'] ?? false,
+        correctMeaning: data['correct_meaning'] ?? '',
+      );
     }
-    return false;
+    return QuizAttemptResult(correct: false, correctMeaning: '');
   }
 
   Future<List<SentenceExercise>> getSentenceExercises(String? token) async {

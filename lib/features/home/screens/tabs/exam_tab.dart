@@ -6,7 +6,12 @@ import '../../../../shared/constants/app_colors.dart';
 import '../../../../shared/constants/app_spacing.dart';
 import '../../../../shared/constants/app_text_styles.dart';
 import '../../../../shared/services/secure_storage_service.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/app_dialog.dart';
+import '../../../exams/services/exam_pdf_service.dart';
 import '../../../exams/services/exam_service.dart';
+import '../../../exams/screens/exam_result_screen.dart';
 
 class ExamTab extends ConsumerStatefulWidget {
   const ExamTab({super.key});
@@ -42,6 +47,45 @@ class _ExamTabState extends ConsumerState<ExamTab> {
       }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _downloadExamPdf(BuildContext context, Exam exam) async {
+    final includeAnswers = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('প্রশ্ন ডাউনলোড করুন'),
+        content: const Text('উত্তরপত্র সহ নাকি উত্তরপত্র ছাড়া ডাউনলোড করতে চান?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('শুধু প্রশ্ন'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('উত্তরসহ'),
+          ),
+        ],
+      ),
+    );
+    if (includeAnswers == null || !mounted) return;
+
+    final storage = SecureStorageService();
+    final token = await storage.readToken();
+    try {
+      final questions =
+          await _examService.getExamQuestions(exam.id, token: token);
+      await ExamPdfService.shareQuestionsPdf(
+        exam: exam,
+        questions: questions,
+        includeAnswers: includeAnswers,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+        );
+      }
     }
   }
 
@@ -215,7 +259,7 @@ class _ExamTabState extends ConsumerState<ExamTab> {
           if (!mounted) return;
           Navigator.of(context)
               .push(MaterialPageRoute(
-                  builder: (_) => _ExamTakingScreen(
+                  builder: (_) => ExamTakingScreen(
                       exam: exam, questions: questions, token: token)))
               .then((_) => _loadData());
         } catch (e) {
@@ -299,6 +343,12 @@ class _ExamTabState extends ConsumerState<ExamTab> {
                 ],
               ),
             ),
+            IconButton(
+              onPressed: () => _downloadExamPdf(context, exam),
+              icon: Icon(Icons.download_rounded,
+                  color: AppColors.textSecondaryFor(context)),
+              tooltip: 'ডাউনলোড',
+            ),
           ],
         ),
       ),
@@ -312,71 +362,80 @@ class _ExamTabState extends ConsumerState<ExamTab> {
             ? AppColors.primary
             : AppColors.warning;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceFor(context),
-        borderRadius: AppRadius.medium,
-        border: Border.all(color: AppColors.borderFor(context)),
-        boxShadow: AppShadow.small,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: AppRadius.small,
-            ),
-            child: Center(
-              child: Text(
-                '${result.percentage.round()}%',
-                style: AppTextStyles.label(context).copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ExamResultScreen(
+          examTitle: result.examTitle,
+          correctAnswers: result.correctAnswers,
+          totalQuestions: result.totalQuestions,
+        ),
+      )),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceFor(context),
+          borderRadius: AppRadius.medium,
+          border: Border.all(color: AppColors.borderFor(context)),
+          boxShadow: AppShadow.small,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: AppRadius.small,
+              ),
+              child: Center(
+                child: Text(
+                  '${result.percentage.round()}%',
+                  style: AppTextStyles.label(context).copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  result.examTitle,
-                  style: AppTextStyles.bodyLarge(context)
-                      .copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '${result.correctAnswers}/${result.totalQuestions} সঠিক',
-                  style: AppTextStyles.bodySmall(context),
-                ),
-              ],
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    result.examTitle,
+                    style: AppTextStyles.bodyLarge(context)
+                        .copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '${result.correctAnswers}/${result.totalQuestions} সঠিক',
+                    style: AppTextStyles.bodySmall(context),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Icon(Icons.check_circle_rounded, color: color, size: 24),
-        ],
+            Icon(Icons.check_circle_rounded, color: color, size: 24),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ExamTakingScreen extends StatefulWidget {
+class ExamTakingScreen extends StatefulWidget {
   final Exam exam;
   final List<ExamQuestion> questions;
   final String? token;
 
-  const _ExamTakingScreen(
+  const ExamTakingScreen(
       {required this.exam, required this.questions, this.token});
 
   @override
-  State<_ExamTakingScreen> createState() => _ExamTakingScreenState();
+  State<ExamTakingScreen> createState() => ExamTakingScreenState();
 }
 
-class _ExamTakingScreenState extends State<_ExamTakingScreen> {
+class ExamTakingScreenState extends State<ExamTakingScreen> {
   int _current = 0;
   final Map<int, String> _answers = {};
   bool _submitting = false;
@@ -390,31 +449,14 @@ class _ExamTakingScreenState extends State<_ExamTakingScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _confirmExit();
       },
-      child: Scaffold(
-        backgroundColor: AppColors.backgroundFor(context),
-        appBar: AppBar(
-          backgroundColor: AppColors.surfaceFor(context),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: _confirmExit,
+      child: AppScaffold(
+        appBar: AppAppBar(
+          title: widget.exam.title,
+          trailing: Text(
+            '${_current + 1}/${widget.questions.length}',
+            style: AppTextStyles.bodyMedium(context)
+                .copyWith(fontWeight: FontWeight.w600),
           ),
-          title: Text(widget.exam.title,
-              style: AppTextStyles.bodyLarge(context)
-                  .copyWith(fontWeight: FontWeight.w600)),
-          centerTitle: true,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  '${_current + 1}/${widget.questions.length}',
-                  style: AppTextStyles.bodyMedium(context)
-                      .copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
         ),
         body: Column(
           children: [
@@ -597,68 +639,52 @@ class _ExamTakingScreenState extends State<_ExamTakingScreen> {
     );
   }
 
-  void _confirmExit() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('পরীক্ষা ছেড়ে যাবেন?'),
-        content: const Text(
-            'আপনার অগ্রগতি মুছে যাবে। নিশ্চিত?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('চালিয়ে যান')),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-            },
-            child: Text('বের হন',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
+  Future<void> _confirmExit() async {
+    final exit = await AppDialog.confirm(
+      context,
+      title: 'পরীক্ষা ছেড়ে যাবেন?',
+      message: 'আপনার অগ্রগতি মুছে যাবে। নিশ্চিত?',
+      confirmText: 'বের হন',
+      cancelText: 'চালিয়ে যান',
+      isDestructive: true,
     );
+    if (exit == true && mounted) Navigator.of(context).pop();
   }
 
   Future<void> _submitExam() async {
     final unanswered = widget.questions.length - _answers.length;
     if (unanswered > 0) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('জমা দিবেন?'),
-          content:
-              Text('$unanswered টি প্রশ্ন বাকি আছে। তবু জমা দিবেন?'),
-          actions: [
-            TextButton(
-                onPressed: () =>
-                    Navigator.of(ctx).pop(false),
-                child: const Text('দেখুন')),
-            TextButton(
-                onPressed: () =>
-                    Navigator.of(ctx).pop(true),
-                child: const Text('জমা দিন')),
-          ],
-        ),
+      final proceed = await AppDialog.confirm(
+        context,
+        title: 'জমা দিবেন?',
+        message: '$unanswered টি প্রশ্ন বাকি আছে। তবু জমা দিবেন?',
+        confirmText: 'জমা দিন',
+        cancelText: 'দেখুন',
       );
       if (proceed != true) return;
     }
 
     setState(() => _submitting = true);
+    final score = widget.questions
+        .where((q) => _answers[q.id] == q.correctLetter)
+        .length;
     try {
       await ExamService().submitExamResult(
         examId: widget.exam.id,
-        answers: _answers,
+        score: score,
+        totalQuestions: widget.questions.length,
         token: widget.token,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('পরীক্ষা জমা হয়েছে!'),
-            backgroundColor: AppColors.success),
-      );
-      Navigator.of(context).pop();
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => ExamResultScreen(
+          examTitle: widget.exam.title,
+          correctAnswers: score,
+          totalQuestions: widget.questions.length,
+          questions: widget.questions,
+          answers: _answers,
+        ),
+      ));
     } catch (e) {
       if (mounted) {
         setState(() => _submitting = false);

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -29,6 +30,7 @@ import '../features/practice/screens/practice_hub_screen.dart';
 import '../features/daily_content/screens/daily_content_screen.dart';
 import '../features/transitions/screens/transition_form_screen.dart';
 import '../features/auth/providers/auth_provider.dart';
+import '../features/auth/models/auth_state.dart';
 import '../shared/constants/app_colors.dart';
 import '../shared/services/secure_storage_service.dart';
 
@@ -71,11 +73,25 @@ String titleForPath(String path) {
   return page == null ? 'EduNova' : 'EduNova - $page';
 }
 
+/// Bridges Riverpod auth-state changes to GoRouter's [refreshListenable]
+/// without rebuilding the [GoRouter] instance itself — recreating the
+/// router on every auth change tears down and rebuilds the whole nav tree,
+/// which resets in-progress screens (e.g. clearing the login form fields).
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(this._ref) {
+    _ref.listen<AuthState>(authProvider, (_, _) => notifyListeners());
+  }
+
+  final Ref _ref;
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final refreshNotifier = _AuthRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: authState.token != null ? '/home' : '/login',
+    initialLocation: ref.read(authProvider).token != null ? '/home' : '/login',
+    refreshListenable: refreshNotifier,
     routes: [
       GoRoute(
         path: '/login',
@@ -147,10 +163,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>? ?? {};
           return ClassDetailScreen(
-            subject: data['subject'] ?? '',
-            teacher: data['teacher'] ?? '',
-            schedule: data['schedule'] ?? '',
-            students: data['students'] ?? 0,
+            batchId: data['batchId'] ?? 0,
+            fallbackTitle: data['subject'] ?? '',
             color: data['color'] ?? AppColors.primary,
           );
         },
@@ -253,6 +267,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) async {
+      final authState = ref.read(authProvider);
       final hasToken = authState.token != null;
       final path = state.matchedLocation;
       final storage = SecureStorageService();

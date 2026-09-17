@@ -6,6 +6,9 @@ import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
 import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_filter_chip.dart';
+import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_search_bar.dart';
 import '../services/course_service.dart';
 
 class CoursesScreen extends StatefulWidget {
@@ -100,56 +103,18 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
   }
 
-  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceFor(context),
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.borderFor(context)),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: AppTextStyles.label(context).copyWith(
-              color: selected ? Colors.white : AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppAppBar(
-        title: 'কোর্সসমূহ',
-        showBackButton: true,
-      ),
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'কোর্সসমূহ'),
       body: Column(
         children: [
           // ── Search ───────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal),
-            child: TextField(
+            child: AppSearchBar(
+              hintText: 'কোর্স খুঁজুন...',
               onChanged: (v) => setState(() => _search = v),
-              decoration: InputDecoration(
-                hintText: 'কোর্স খুঁজুন...',
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                filled: true,
-                fillColor: AppColors.surfaceFor(context),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide.none,
-                ),
-              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -164,10 +129,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 final tf = _typeFilters[i];
-                return _buildFilterChip(
-                  tf['label']!,
-                  _selectedType == tf['value'],
-                  () {
+                return AppFilterChip(
+                  label: tf['label']!,
+                  isSelected: _selectedType == tf['value'],
+                  onTap: () {
                     setState(() => _selectedType = tf['value']!);
                     _loadCourses();
                   },
@@ -187,10 +152,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 final cl = _classLevels[i];
-                return _buildFilterChip(
-                  cl['value'] == 'all' ? cl['label']! : 'ক্লাস ${cl['label']}',
-                  _selectedClass == cl['value'],
-                  () {
+                return AppFilterChip(
+                  label: cl['value'] == 'all' ? cl['label']! : 'ক্লাস ${cl['label']}',
+                  isSelected: _selectedClass == cl['value'],
+                  onTap: () {
                     setState(() => _selectedClass = cl['value']!);
                     _loadCourses();
                   },

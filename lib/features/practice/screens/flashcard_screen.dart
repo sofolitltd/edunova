@@ -1,3 +1,4 @@
+import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -5,6 +6,8 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
+import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_app_bar.dart';
 import '../services/practice_service.dart';
 
 class FlashcardScreen extends StatefulWidget {
@@ -18,7 +21,6 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   final _service = PracticeService();
   List<VocabularyWord> _words = [];
   int _index = 0;
-  bool _flipped = false;
   bool _loading = true;
   String? _token;
 
@@ -35,10 +37,9 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     if (mounted) setState(() { _words = words; _loading = false; });
   }
 
-  void _flip() {
-    HapticFeedback.selectionClick();
-    setState(() => _flipped = !_flipped);
-    if (_flipped) {
+  void _onFlipDone(bool wasFront) {
+    if (wasFront) {
+      HapticFeedback.selectionClick();
       _service.reviewFlashcard(_token, _words[_index].id);
     }
   }
@@ -46,28 +47,18 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   void _next() {
     if (_index >= _words.length - 1) return;
     HapticFeedback.lightImpact();
-    setState(() { _index++; _flipped = false; });
+    setState(() => _index++);
   }
 
   void _prev() {
     if (_index <= 0) return;
-    setState(() { _index--; _flipped = false; });
+    setState(() => _index--);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundFor(context),
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceFor(context),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text('ফ্ল্যাশকার্ড', style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-      ),
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'ফ্ল্যাশকার্ড'),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -95,13 +86,13 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-                          child: GestureDetector(
-                            onTap: _flip,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 250),
-                              transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-                              child: _flipped ? _buildCardBack() : _buildCardFront(),
-                            ),
+                          child: FlipCard(
+                            key: ValueKey(_index),
+                            speed: 400,
+                            direction: FlipDirection.HORIZONTAL,
+                            onFlipDone: _onFlipDone,
+                            front: _buildCardFront(),
+                            back: _buildCardBack(),
                           ),
                         ),
                       ),

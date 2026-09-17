@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "edu-nova-bd"
+  },
+  "targets": {
+    "edu-nova-bd": {
+      "hosting": {
+        "edunovacare": [
+          "edunovacare"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

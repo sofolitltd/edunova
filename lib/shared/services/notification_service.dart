@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,10 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._();
   factory NotificationService() => _instance;
   NotificationService._();
+
+  // Generated in Firebase Console: Project settings > Cloud Messaging >
+  // Web configuration > Web Push certificates.
+  static const String _webVapidKey = 'REPLACE_WITH_WEB_PUSH_VAPID_KEY';
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
@@ -31,28 +36,30 @@ class NotificationService {
     if (_initialized) return;
     _initialized = true;
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    if (!kIsWeb) {
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initSettings = InitializationSettings(android: androidSettings);
 
-    await _localNotifications.initialize(
-      settings: initSettings,
-      onDidReceiveNotificationResponse: (details) {
-        _handleNotificationTap(details.payload);
-      },
-      onDidReceiveBackgroundNotificationResponse:
-          _onDidReceiveBackgroundNotificationResponse,
-    );
+      await _localNotifications.initialize(
+        settings: initSettings,
+        onDidReceiveNotificationResponse: (details) {
+          _handleNotificationTap(details.payload);
+        },
+        onDidReceiveBackgroundNotificationResponse:
+            _onDidReceiveBackgroundNotificationResponse,
+      );
 
-    const androidChannel = AndroidNotificationChannel(
-      'edunova_high_importance',
-      'EduNova Notifications',
-      description: 'Important notifications from EduNova',
-      importance: Importance.high,
-    );
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(androidChannel);
+      const androidChannel = AndroidNotificationChannel(
+        'edunova_high_importance',
+        'EduNova Notifications',
+        description: 'Important notifications from EduNova',
+        importance: Importance.high,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(androidChannel);
+    }
 
     final settings = await _messaging.requestPermission(
       alert: true,
@@ -65,7 +72,15 @@ class NotificationService {
       return;
     }
 
-    _fcmToken = await _messaging.getToken();
+    try {
+      _fcmToken = await _messaging.getToken(
+        vapidKey: kIsWeb ? _webVapidKey : null,
+      );
+    } catch (_) {
+      // On web this fails until _webVapidKey is set to a real Web Push
+      // certificate key from Firebase Console; don't block app startup.
+      return;
+    }
     if (_fcmToken != null) {
       await authNotifier.registerDeviceToken(_fcmToken!);
     }
@@ -109,6 +124,7 @@ class NotificationService {
   void _handleForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
     if (notification == null) return;
+    if (kIsWeb) return;
 
     final data = message.data;
     final linkType = data['type'] ?? '';

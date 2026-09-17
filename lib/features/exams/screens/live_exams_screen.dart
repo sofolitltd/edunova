@@ -5,7 +5,12 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
+import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_dialog.dart';
+import '../services/exam_pdf_service.dart';
 import '../services/exam_service.dart';
+import 'exam_result_screen.dart';
 
 class LiveExamsScreen extends ConsumerStatefulWidget {
   const LiveExamsScreen({super.key});
@@ -44,20 +49,48 @@ class _LiveExamsScreenState extends ConsumerState<LiveExamsScreen> {
     }
   }
 
+  Future<void> _downloadExamPdf(BuildContext context, Exam exam) async {
+    final includeAnswers = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Download Questions'),
+        content: const Text('Download with answers or without answers?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Questions Only'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('With Answers'),
+          ),
+        ],
+      ),
+    );
+    if (includeAnswers == null || !mounted) return;
+
+    final storage = SecureStorageService();
+    final token = await storage.readToken();
+    try {
+      final questions = await _examService.getExamQuestions(exam.id, token: token);
+      await ExamPdfService.shareQuestionsPdf(
+        exam: exam,
+        questions: questions,
+        includeAnswers: includeAnswers,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundFor(context),
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceFor(context),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text('লাইভ পরীক্ষা', style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-      ),
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'লাইভ পরীক্ষা'),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -178,6 +211,11 @@ class _LiveExamsScreenState extends ConsumerState<LiveExamsScreen> {
                 ],
               ),
             ),
+            IconButton(
+              onPressed: () => _downloadExamPdf(context, exam),
+              icon: Icon(Icons.download_rounded, color: AppColors.textSecondaryFor(context)),
+              tooltip: 'Download',
+            ),
           ],
         ),
       ),
@@ -191,40 +229,49 @@ class _LiveExamsScreenState extends ConsumerState<LiveExamsScreen> {
             ? AppColors.primary
             : AppColors.warning;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceFor(context),
-        borderRadius: AppRadius.medium,
-        border: Border.all(color: AppColors.borderFor(context)),
-        boxShadow: AppShadow.small,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: AppRadius.small,
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ExamResultScreen(
+          examTitle: result.examTitle,
+          correctAnswers: result.correctAnswers,
+          totalQuestions: result.totalQuestions,
+        ),
+      )),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceFor(context),
+          borderRadius: AppRadius.medium,
+          border: Border.all(color: AppColors.borderFor(context)),
+          boxShadow: AppShadow.small,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: AppRadius.small,
+              ),
+              child: Center(
+                child: Text('${result.percentage.round()}%', style: AppTextStyles.label(context).copyWith(color: color, fontWeight: FontWeight.w700, fontSize: 14)),
+              ),
             ),
-            child: Center(
-              child: Text('${result.percentage.round()}%', style: AppTextStyles.label(context).copyWith(color: color, fontWeight: FontWeight.w700, fontSize: 14)),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(result.examTitle, style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text('${result.correctAnswers}/${result.totalQuestions} correct', style: AppTextStyles.bodySmall(context)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(result.examTitle, style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-                const SizedBox(height: AppSpacing.xs),
-                Text('${result.correctAnswers}/${result.totalQuestions} correct', style: AppTextStyles.bodySmall(context)),
-              ],
-            ),
-          ),
-          Icon(Icons.check_circle_rounded, color: color, size: 24),
-        ],
+            Icon(Icons.check_circle_rounded, color: color, size: 24),
+          ],
+        ),
       ),
     );
   }
@@ -275,28 +322,13 @@ class _ExamTakingScreenState extends State<_ExamTakingScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _confirmExit();
       },
-      child: Scaffold(
-        backgroundColor: AppColors.backgroundFor(context),
-        appBar: AppBar(
-          backgroundColor: AppColors.surfaceFor(context),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: _confirmExit,
+      child: AppScaffold(
+        appBar: AppAppBar(
+          title: widget.exam.title,
+          trailing: Text(
+            '${_current + 1}/${widget.questions.length}',
+            style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
           ),
-          title: Text(widget.exam.title, style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-          centerTitle: true,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  '${_current + 1}/${widget.questions.length}',
-                  style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
         ),
         body: Column(
           children: [
@@ -439,55 +471,52 @@ class _ExamTakingScreenState extends State<_ExamTakingScreen> {
     );
   }
 
-  void _confirmExit() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Exit Exam?'),
-        content: const Text('Your progress will be lost. Are you sure?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Continue Exam')),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-            },
-            child: Text('Exit', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
+  Future<void> _confirmExit() async {
+    final exit = await AppDialog.confirm(
+      context,
+      title: 'Exit Exam?',
+      message: 'Your progress will be lost. Are you sure?',
+      confirmText: 'Exit',
+      cancelText: 'Continue Exam',
+      isDestructive: true,
     );
+    if (exit == true && mounted) Navigator.of(context).pop();
   }
 
   Future<void> _submitExam() async {
     final unanswered = widget.questions.length - _answers.length;
     if (unanswered > 0) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Submit Exam?'),
-          content: Text('$unanswered question(s) unanswered. Submit anyway?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Review')),
-            TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Submit')),
-          ],
-        ),
+      final proceed = await AppDialog.confirm(
+        context,
+        title: 'Submit Exam?',
+        message: '$unanswered question(s) unanswered. Submit anyway?',
+        confirmText: 'Submit',
+        cancelText: 'Review',
       );
       if (proceed != true) return;
     }
 
     setState(() => _submitting = true);
+    final score = widget.questions
+        .where((q) => _answers[q.id] == q.correctLetter)
+        .length;
     try {
       await ExamService().submitExamResult(
         examId: widget.exam.id,
-        answers: _answers,
+        score: score,
+        totalQuestions: widget.questions.length,
         token: widget.token,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Exam submitted!'), backgroundColor: AppColors.success),
-      );
-      Navigator.of(context).pop();
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => ExamResultScreen(
+          examTitle: widget.exam.title,
+          correctAnswers: score,
+          totalQuestions: widget.questions.length,
+          questions: widget.questions,
+          answers: _answers,
+        ),
+      ));
     } catch (e) {
       if (mounted) {
         setState(() => _submitting = false);

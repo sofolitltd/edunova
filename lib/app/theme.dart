@@ -16,6 +16,11 @@ class AppTheme {
           error: Color(0xFFEF4444),
           outline: Color(0xFFE2E8F0),
         ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
       );
 
   static ThemeData get dark => ThemeData(
@@ -30,6 +35,11 @@ class AppTheme {
           onSurface: Color(0xFFF1F5F9),
           error: Color(0xFFF87171),
           outline: Color(0xFF334155),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: const Color(0xFF1E293B),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       );
 }

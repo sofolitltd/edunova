@@ -5,6 +5,8 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
+import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_app_bar.dart';
 import '../services/practice_service.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -23,6 +25,7 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _answered = false;
   String? _selected;
   bool? _wasCorrect;
+  String? _correctMeaning;
   String? _token;
 
   @override
@@ -42,13 +45,14 @@ class _QuizScreenState extends State<QuizScreen> {
     if (_answered) return;
     HapticFeedback.selectionClick();
     final question = _questions[_index];
-    final correct = await _service.submitQuizAttempt(_token, question.wordId, option);
+    final result = await _service.submitQuizAttempt(_token, question.wordId, option);
     if (!mounted) return;
     setState(() {
       _selected = option;
       _answered = true;
-      _wasCorrect = correct;
-      if (correct) _score++;
+      _wasCorrect = result.correct;
+      _correctMeaning = result.correctMeaning;
+      if (result.correct) _score++;
     });
   }
 
@@ -62,23 +66,14 @@ class _QuizScreenState extends State<QuizScreen> {
       _answered = false;
       _selected = null;
       _wasCorrect = null;
+      _correctMeaning = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundFor(context),
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceFor(context),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text('শব্দ কুইজ', style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-      ),
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'শব্দ কুইজ'),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -163,17 +158,24 @@ class _QuizScreenState extends State<QuizScreen> {
     IconData? icon;
     Color? iconColor;
 
-    if (_answered && option == _selected) {
-      if (_wasCorrect == true) {
+    if (_answered) {
+      if (option == _selected) {
+        if (_wasCorrect == true) {
+          borderColor = AppColors.success;
+          bgColor = AppColors.success.withValues(alpha: 0.08);
+          icon = Icons.check_circle_rounded;
+          iconColor = AppColors.success;
+        } else {
+          borderColor = AppColors.error;
+          bgColor = AppColors.error.withValues(alpha: 0.08);
+          icon = Icons.cancel_rounded;
+          iconColor = AppColors.error;
+        }
+      } else if (_wasCorrect == false && option == _correctMeaning) {
         borderColor = AppColors.success;
         bgColor = AppColors.success.withValues(alpha: 0.08);
         icon = Icons.check_circle_rounded;
         iconColor = AppColors.success;
-      } else {
-        borderColor = AppColors.error;
-        bgColor = AppColors.error.withValues(alpha: 0.08);
-        icon = Icons.cancel_rounded;
-        iconColor = AppColors.error;
       }
     }
 
@@ -185,7 +187,7 @@ class _QuizScreenState extends State<QuizScreen> {
         decoration: BoxDecoration(
           color: bgColor ?? AppColors.surfaceFor(context),
           borderRadius: AppRadius.medium,
-          border: Border.all(color: borderColor, width: option == _selected ? 1.5 : 1),
+          border: Border.all(color: borderColor, width: bgColor != null ? 1.5 : 1),
         ),
         child: Row(
           children: [

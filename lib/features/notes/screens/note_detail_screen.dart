@@ -4,6 +4,8 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
+import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_app_bar.dart';
 import '../services/notes_service.dart';
 
 class NoteDetailScreen extends StatefulWidget {
@@ -34,32 +36,35 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Loading...')),
-        body: const Center(child: CircularProgressIndicator()),
+      return const AppScaffold(
+        appBar: AppAppBar(title: 'Loading...'),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_note == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Note not found')),
-        body: const Center(child: Text('Note not found')),
+      return const AppScaffold(
+        appBar: AppAppBar(title: 'Note not found'),
+        body: Center(child: Text('Note not found')),
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundFor(context),
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceFor(context),
-        elevation: 0,
-        title: Text(_note!.title, style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.print_rounded),
-            onPressed: _printNote,
-            tooltip: 'Print',
+    return AppScaffold(
+      appBar: AppAppBar(
+        title: _note!.title,
+        trailing: GestureDetector(
+          onTap: _printNote,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceFor(context),
+              borderRadius: AppRadius.medium,
+              boxShadow: AppShadow.small,
+            ),
+            child: Icon(Icons.print_rounded, size: 18, color: AppColors.textPrimaryFor(context)),
           ),
-        ],
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

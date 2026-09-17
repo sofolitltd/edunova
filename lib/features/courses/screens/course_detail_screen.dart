@@ -9,6 +9,7 @@ import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_scaffold.dart';
 import '../services/course_service.dart';
 
 class CourseDetailScreen extends ConsumerStatefulWidget {
@@ -81,16 +82,14 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: const AppAppBar(title: ''),
-        body: const Center(child: CircularProgressIndicator()),
+      return const AppScaffold(
+        appBar: AppAppBar(title: ''),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null || _course == null) {
-      return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      return AppScaffold(
         appBar: const AppAppBar(title: ''),
         body: Center(
           child: Column(
@@ -115,8 +114,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
     final course = _course!;
     final accent = _parseColor(course.color);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    return AppScaffold(
       body: Column(
         children: [
           // ── Header ───────────────────────

@@ -9,6 +9,7 @@ import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/app_scaffold.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../services/course_service.dart';
 
@@ -179,8 +180,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    return AppScaffold(
       appBar: AppAppBar(
         title: 'এনরোলমেন্ট',
         showBackButton: _currentStep < 2,

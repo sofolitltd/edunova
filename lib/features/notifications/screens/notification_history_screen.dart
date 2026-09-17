@@ -6,6 +6,7 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_scaffold.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../services/notification_history_service.dart';
 
@@ -194,11 +195,9 @@ class _NotificationHistoryScreenState
     final unreadCount =
         _notifications.where((n) => !n.readByMe).length;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    return AppScaffold(
       appBar: AppAppBar(
         title: 'নোটিফিকেশন',
-        showBackButton: true,
         trailing: unreadCount > 0
             ? TextButton(
                 onPressed: _markAllAsRead,

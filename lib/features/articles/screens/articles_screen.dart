@@ -5,6 +5,7 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_scaffold.dart';
 import '../services/article_service.dart';
 import 'article_detail_screen.dart';
 
@@ -60,12 +61,8 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppAppBar(
-        title: 'পেরেন্টিং হাব',
-        showBackButton: true,
-      ),
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'পেরেন্টিং হাব'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

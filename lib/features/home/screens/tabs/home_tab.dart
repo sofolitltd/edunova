@@ -76,7 +76,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
       if (token == null) return;
       final enrollments = await _service.getMyEnrollments(token);
       final approved = enrollments.where(
-        (e) => e.status == 'approved' && e.batchSchedule.isNotEmpty,
+        (e) => e.status == 'approved' && e.batchSchedule.isNotEmpty && e.batchId != null,
       );
       if (mounted && approved.isNotEmpty) {
         setState(() => _activeEnrollment = approved.first);
@@ -93,405 +93,333 @@ class _HomeTabState extends ConsumerState<HomeTab> {
     } catch (_) {}
   }
 
-  Color _parseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (_) {
-      return AppColors.primary;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = ref.watch(authProvider).user;
+    final firstName = (user?.fullName ?? '').trim().split(' ').first;
 
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: () => Future.wait([_loadCourses(), _loadResultSummary(), _loadRoutine(), _loadNotifications()]),
-        child: SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: AppColors.backgroundFor(context),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () => Future.wait(
+          [_loadCourses(), _loadResultSummary(), _loadRoutine(), _loadNotifications()],
+        ),
+        child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.screenHorizontal,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: AppSpacing.xl),
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildHero(context, l10n, isDark, firstName),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenHorizontal,
+                AppSpacing.xxl,
+                AppSpacing.screenHorizontal,
+                AppSpacing.xxxxxl,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // ── Progress + Routine ─────────────────
+                  if (_resultSummary.totalExams > 0) ...[
+                    _buildProgressCard(context),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (_activeEnrollment != null) ...[
+                    _buildRoutineCard(context),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (_notifications.isNotEmpty) ...[
+                    _buildNotificationsCard(context),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ] else
+                    const SizedBox(height: AppSpacing.lg),
 
-              // ── Header ──────────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.welcomeBack,
-                        style: AppTextStyles.h2(context),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        l10n.homeSubtitle,
-                        style: AppTextStyles.bodyMedium(context),
-                      ),
-                    ],
-                  ),
+                  // ── Quick Access ─────────────────────
+                  Text('দ্রুত প্রবেশ', style: AppTextStyles.h3(context)),
+                  const SizedBox(height: AppSpacing.lg),
                   Row(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          context.push('/notifications');
-                        },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceFor(context),
-                            borderRadius: AppRadius.medium,
-                            boxShadow: AppShadow.small,
-                            border: Border.all(color: AppColors.borderFor(context)),
-                          ),
-                          child: Icon(
-                            Icons.notifications_outlined,
-                            size: 20,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          ref.read(themeProvider.notifier).toggleTheme();
-                        },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceFor(context),
-                            borderRadius: AppRadius.medium,
-                            boxShadow: AppShadow.small,
-                            border: Border.all(color: AppColors.borderFor(context)),
-                          ),
-                          child: Icon(
-                            isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                            size: 20,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-
-              // ── Search Bar ──────────────────────────
-              GestureDetector(
-                onTap: () => context.push('/courses'),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceFor(context),
-                    borderRadius: AppRadius.medium,
-                    border: Border.all(color: AppColors.borderFor(context)),
-                    boxShadow: AppShadow.small,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search_rounded,
-                        size: 20,
-                        color: AppColors.textTertiaryFor(context),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        l10n.searchCourses,
-                        style: AppTextStyles.bodyMedium(context),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-
-              // ── Progress Summary ─────────────────────
-              if (_resultSummary.totalExams > 0) ...[
-                _buildProgressCard(context),
-                const SizedBox(height: AppSpacing.md),
-              ],
-
-              // ── Routine ───────────────────────────────
-              if (_activeEnrollment != null) ...[
-                _buildRoutineCard(context),
-                const SizedBox(height: AppSpacing.md),
-              ],
-
-              // ── Notifications Preview ────────────────
-              if (_notifications.isNotEmpty) ...[
-                _buildNotificationsCard(context),
-                const SizedBox(height: AppSpacing.xxl),
-              ] else
-                const SizedBox(height: AppSpacing.lg),
-
-              // ── Quick Access ─────────────────────────
-              Text('দ্রুত প্রবেশ', style: AppTextStyles.h3(context)),
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: [
-                  _buildQuickAccessCard(
-                    context,
-                    icon: Icons.live_tv_rounded,
-                    label: 'লাইভ পরীক্ষা',
-                    color: AppColors.error,
-                    onTap: () => context.push('/live-exams'),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  _buildQuickAccessCard(
-                    context,
-                    icon: Icons.note_alt_rounded,
-                    label: 'নোটস',
-                    color: AppColors.primary,
-                    onTap: () => context.push('/notes'),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  _buildQuickAccessCard(
-                    context,
-                    icon: Icons.lightbulb_rounded,
-                    label: 'দৈনিক শেখার',
-                    color: AppColors.warning,
-                    onTap: () => context.push('/daily-content'),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  _buildQuickAccessCard(
-                    context,
-                    icon: Icons.sports_esports_rounded,
-                    label: 'অনুশীলন',
-                    color: AppColors.success,
-                    onTap: () => context.push('/practice'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-
-              // ── Free Courses ────────────────────────
-              if (_freeCourses.isNotEmpty) ...[
-                _buildSectionHeader(
-                  context,
-                  title: 'ফ্রী কোর্স',
-                  subtitle: 'বিনামূল্যে কোর্সে ভর্তি হন',
-                  color: AppColors.success,
-                  onTap: () => context.push('/courses?type=free'),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  height: 160,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _freeCourses.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
-                    itemBuilder: (context, index) => _buildCourseCardHorizontal(
-                      context,
-                      course: _freeCourses[index],
-                      accentColor: AppColors.success,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-
-              // ── Offline Batches ─────────────────────
-              if (_offlineCourses.isNotEmpty) ...[
-                _buildSectionHeader(
-                  context,
-                  title: 'অফলাইন ব্যাচ',
-                  subtitle: 'কোচিং সেন্টারে ক্লাস',
-                  color: AppColors.warning,
-                  onTap: () => context.push('/courses?type=offline'),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  height: 160,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _offlineCourses.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
-                    itemBuilder: (context, index) => _buildCourseCardHorizontal(
-                      context,
-                      course: _offlineCourses[index],
-                      accentColor: AppColors.warning,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-
-              // ── Online Courses ──────────────────────
-              if (_onlineCourses.isNotEmpty) ...[
-                _buildSectionHeader(
-                  context,
-                  title: 'অনলাইন কোর্স',
-                  subtitle: 'ঘরে বসে পড়ুন',
-                  color: AppColors.primary,
-                  onTap: () => context.push('/courses?type=online'),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  height: 160,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _onlineCourses.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
-                    itemBuilder: (context, index) => _buildCourseCardHorizontal(
-                      context,
-                      course: _onlineCourses[index],
-                      accentColor: AppColors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-
-              // ── Loading / Empty ─────────────────────
-              if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              if (!_isLoading && _freeCourses.isEmpty && _offlineCourses.isEmpty && _onlineCourses.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Center(
-                    child: Text(
-                      'কোনো কোর্স পাওয়া যায়নি',
-                      style: AppTextStyles.bodyMedium(context),
-                    ),
-                  ),
-                ),
-
-              // ── See All Courses Button ───────────────
-              GestureDetector(
-                onTap: () => context.push('/courses'),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryDark],
-                    ),
-                    borderRadius: AppRadius.large,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: AppRadius.medium,
-                        ),
-                        child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                      _buildQuickAccessCard(
+                        context,
+                        icon: Icons.live_tv_rounded,
+                        label: 'লাইভ পরীক্ষা',
+                        color: AppColors.error,
+                        onTap: () => context.push('/live-exams'),
                       ),
                       const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'সব কোর্স দেখুন',
-                              style: AppTextStyles.bodyLarge(context).copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Class ৩-৮ এর সব কোর্স',
-                              style: AppTextStyles.bodySmall(context).copyWith(
-                                color: Colors.white.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ],
-                        ),
+                      _buildQuickAccessCard(
+                        context,
+                        icon: Icons.note_alt_rounded,
+                        label: 'নোটস',
+                        color: AppColors.primary,
+                        onTap: () => context.push('/notes'),
                       ),
-                      Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withValues(alpha: 0.8), size: 16),
+                      const SizedBox(width: AppSpacing.md),
+                      _buildQuickAccessCard(
+                        context,
+                        icon: Icons.lightbulb_rounded,
+                        label: 'দৈনিক শেখার',
+                        color: AppColors.warning,
+                        onTap: () => context.push('/daily-content'),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      _buildQuickAccessCard(
+                        context,
+                        icon: Icons.sports_esports_rounded,
+                        label: 'অনুশীলন',
+                        color: AppColors.success,
+                        onTap: () => context.push('/practice'),
+                      ),
                     ],
                   ),
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // ── Free Courses ────────────────────
+                  if (_freeCourses.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: 'ফ্রী কোর্স',
+                      subtitle: 'বিনামূল্যে কোর্সে ভর্তি হন',
+                      color: AppColors.success,
+                      onTap: () => context.push('/courses?type=free'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      height: 172,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _freeCourses.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                        itemBuilder: (context, index) => _buildCourseCardHorizontal(
+                          context,
+                          course: _freeCourses[index],
+                          accentColor: AppColors.success,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ],
+
+                  // ── Offline Batches ─────────────────
+                  if (_offlineCourses.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: 'অফলাইন ব্যাচ',
+                      subtitle: 'কোচিং সেন্টারে ক্লাস',
+                      color: AppColors.warning,
+                      onTap: () => context.push('/courses?type=offline'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      height: 172,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _offlineCourses.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                        itemBuilder: (context, index) => _buildCourseCardHorizontal(
+                          context,
+                          course: _offlineCourses[index],
+                          accentColor: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ],
+
+                  // ── Online Courses ───────────────────
+                  if (_onlineCourses.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: 'অনলাইন কোর্স',
+                      subtitle: 'ঘরে বসে পড়ুন',
+                      color: AppColors.primary,
+                      onTap: () => context.push('/courses?type=online'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      height: 172,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _onlineCourses.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                        itemBuilder: (context, index) => _buildCourseCardHorizontal(
+                          context,
+                          course: _onlineCourses[index],
+                          accentColor: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ],
+
+                  // ── Loading / Empty ───────────────────
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  if (!_isLoading &&
+                      _freeCourses.isEmpty &&
+                      _offlineCourses.isEmpty &&
+                      _onlineCourses.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: Text(
+                          'কোনো কোর্স পাওয়া যায়নি',
+                          style: AppTextStyles.bodyMedium(context),
+                        ),
+                      ),
+                    ),
+
+                  // ── All Courses CTA ───────────────────
+                  _buildCtaBanner(
+                    context,
+                    icon: Icons.school_rounded,
+                    title: 'সব কোর্স দেখুন',
+                    subtitle: 'Class ৩-৮ এর সব কোর্স',
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                    onTap: () => context.push('/courses'),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // ── Parenting Hub ─────────────────────
+                  _buildCtaBanner(
+                    context,
+                    icon: Icons.article_rounded,
+                    title: 'পেরেন্টিং হাব',
+                    subtitle: 'শিশু বিকাস, মানসিক স্বাস্থ্য ও পেরেন্টিং টিপস',
+                    colors: [AppColors.accent, const Color(0xFFEC4899)],
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      context.push('/articles');
+                    },
+                  ),
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Hero header ───────────────────────────────────────
+  Widget _buildHero(
+    BuildContext context,
+    AppLocalizations l10n,
+    bool isDark,
+    String firstName,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.screenHorizontal,
+        MediaQuery.of(context).padding.top + AppSpacing.lg,
+        AppSpacing.screenHorizontal,
+        AppSpacing.xxxl,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, AppColors.primaryDark],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(AppRadius.xxl),
+          bottomRight: Radius.circular(AppRadius.xxl),
+        ),
+        boxShadow: AppShadow.primary,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.welcomeBack,
+                      style: AppTextStyles.label(context).copyWith(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      firstName.isNotEmpty ? firstName : l10n.homeSubtitle,
+                      style: AppTextStyles.h2(context).copyWith(color: Colors.white),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-
-              // ── Parenting Hub ────────────────────────
-              GestureDetector(
+              const SizedBox(width: AppSpacing.md),
+              _heroIconButton(
+                icon: Icons.notifications_outlined,
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  context.push('/articles');
+                  context.push('/notifications');
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.accent, AppColors.accent.withValues(alpha: 0.8)],
-                    ),
-                    borderRadius: AppRadius.large,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: AppRadius.medium,
-                        ),
-                        child: const Icon(Icons.article_rounded, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'পেরেন্টিং হাব',
-                              style: AppTextStyles.bodyLarge(context).copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'শিশু বিকাস, মানসিক স্বাস্থ্য ও পেরেন্টিং টিপস',
-                              style: AppTextStyles.bodySmall(context).copyWith(
-                                color: Colors.white.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withValues(alpha: 0.8), size: 16),
-                    ],
-                  ),
-                ),
               ),
-              const SizedBox(height: AppSpacing.xxxxxl),
+              const SizedBox(width: AppSpacing.sm),
+              _heroIconButton(
+                icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  ref.read(themeProvider.notifier).toggleTheme();
+                },
+              ),
             ],
           ),
+          const SizedBox(height: AppSpacing.xl),
+          GestureDetector(
+            onTap: () => context.push('/courses'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                borderRadius: AppRadius.medium,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search_rounded, size: 20, color: Colors.white.withValues(alpha: 0.85)),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    l10n.searchCourses,
+                    style: AppTextStyles.bodyMedium(context).copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroIconButton({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.16),
+          borderRadius: AppRadius.medium,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
         ),
+        child: Icon(icon, size: 20, color: Colors.white),
       ),
     );
   }
@@ -516,12 +444,18 @@ class _HomeTabState extends ConsumerState<HomeTab> {
         ),
         GestureDetector(
           onTap: onTap,
-          child: Text(
-            'সব দেখুন',
-            style: AppTextStyles.bodyMedium(context).copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+          child: Row(
+            children: [
+              Text(
+                'সব দেখুন',
+                style: AppTextStyles.bodyMedium(context).copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(Icons.chevron_right_rounded, size: 18, color: color),
+            ],
           ),
         ),
       ],
@@ -536,11 +470,11 @@ class _HomeTabState extends ConsumerState<HomeTab> {
     return GestureDetector(
       onTap: () => context.push('/courses/${course.id}'),
       child: Container(
-        width: 220,
-        padding: const EdgeInsets.all(14),
+        width: 228,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.surfaceFor(context),
-          borderRadius: AppRadius.large,
+          borderRadius: AppRadius.extraLarge,
           border: Border.all(color: AppColors.borderFor(context)),
           boxShadow: AppShadow.small,
         ),
@@ -550,26 +484,32 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.1),
+                    color: accentColor.withValues(alpha: 0.12),
                     borderRadius: AppRadius.small,
                   ),
                   child: Text(
-                    course.type == 'free' ? 'ফ্রী' : course.type == 'offline' ? 'অফলাইন' : 'অনলাইন',
+                    course.type == 'free'
+                        ? 'ফ্রী'
+                        : course.type == 'offline'
+                            ? 'অফলাইন'
+                            : 'অনলাইন',
                     style: AppTextStyles.label(context).copyWith(
                       color: accentColor,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
                     ),
                   ),
                 ),
                 const SizedBox(width: 6),
                 if (course.classLevel.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.borderFor(context),
+                      color: AppColors.backgroundFor(context),
                       borderRadius: AppRadius.small,
+                      border: Border.all(color: AppColors.borderFor(context)),
                     ),
                     child: Text(
                       'Class ${course.classLevel}',
@@ -578,20 +518,29 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                   ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.md),
             Text(
               course.titleBn.isNotEmpty ? course.titleBn : course.title,
-              style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600),
+              style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w700),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
+            if (course.schedule.isNotEmpty) ...[
+              Text(
+                course.schedule,
+                style: AppTextStyles.bodySmall(context),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+            ],
             if (course.type == 'free')
               Text(
                 'ফ্রী',
                 style: AppTextStyles.bodyLarge(context).copyWith(
                   color: AppColors.success,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               )
             else
@@ -599,18 +548,9 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 '৳${course.price}',
                 style: AppTextStyles.bodyLarge(context).copyWith(
                   color: accentColor,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-            if (course.schedule.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                course.schedule,
-                style: AppTextStyles.bodySmall(context),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ],
         ),
       ),
@@ -626,30 +566,36 @@ class _HomeTabState extends ConsumerState<HomeTab> {
   }) {
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
             color: AppColors.surfaceFor(context),
-            borderRadius: AppRadius.medium,
+            borderRadius: AppRadius.large,
             border: Border.all(color: AppColors.borderFor(context)),
             boxShadow: AppShadow.small,
           ),
           child: Column(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: AppRadius.small,
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: AppRadius.medium,
                 ),
-                child: Icon(icon, size: 20, color: color),
+                child: Icon(icon, size: 21, color: color),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 label,
-                style: AppTextStyles.bodySmall(context).copyWith(fontWeight: FontWeight.w500),
+                style: AppTextStyles.bodySmall(context).copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondaryFor(context),
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -674,7 +620,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: AppColors.surfaceFor(context),
-          borderRadius: AppRadius.medium,
+          borderRadius: AppRadius.large,
           border: Border.all(color: AppColors.borderFor(context)),
           boxShadow: AppShadow.small,
         ),
@@ -684,7 +630,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -710,7 +656,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textSecondaryFor(context)),
           ],
         ),
       ),
@@ -719,8 +665,14 @@ class _HomeTabState extends ConsumerState<HomeTab> {
 
   Widget _buildRoutineCard(BuildContext context) {
     final enrollment = _activeEnrollment!;
+    final color = AppColors.primary;
+
     return GestureDetector(
-      onTap: () => context.push('/my-enrollments'),
+      onTap: () => context.push('/class-detail', extra: {
+        'batchId': enrollment.batchId ?? 0,
+        'subject': enrollment.batchName.isNotEmpty ? enrollment.batchName : enrollment.courseName,
+        'color': color,
+      }),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -730,34 +682,87 @@ class _HomeTabState extends ConsumerState<HomeTab> {
           border: Border.all(color: AppColors.borderFor(context)),
           boxShadow: AppShadow.small,
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: AppRadius.small,
-              ),
-              child: Icon(Icons.schedule_rounded, size: 22, color: AppColors.primary),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    enrollment.batchName.isNotEmpty ? enrollment.batchName : 'রুটিন',
-                    style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [color, color.withValues(alpha: 0.7)],
+                    ),
+                    borderRadius: AppRadius.small,
                   ),
-                  const SizedBox(height: 2),
-                  Text(enrollment.batchSchedule, style: AppTextStyles.bodySmall(context), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        enrollment.batchName.isNotEmpty ? enrollment.batchName : 'রুটিন',
+                        style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        enrollment.courseName,
+                        style: AppTextStyles.bodySmall(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Text(
+                    'চলমান',
+                    style: AppTextStyles.label(context).copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+            if (enrollment.batchSchedule.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundFor(context),
+                  borderRadius: AppRadius.small,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 16, color: AppColors.textTertiaryFor(context)),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        enrollment.batchSchedule,
+                        style: AppTextStyles.bodySmall(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textSecondaryFor(context)),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -774,7 +779,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.surfaceFor(context),
-          borderRadius: AppRadius.medium,
+          borderRadius: AppRadius.large,
           border: Border.all(color: AppColors.borderFor(context)),
           boxShadow: AppShadow.small,
         ),
@@ -784,8 +789,8 @@ class _HomeTabState extends ConsumerState<HomeTab> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
-                borderRadius: AppRadius.small,
+                color: AppColors.warning.withValues(alpha: 0.12),
+                borderRadius: AppRadius.medium,
               ),
               child: Stack(
                 clipBehavior: Clip.none,
@@ -820,7 +825,76 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textSecondaryFor(context)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCtaBanner(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required List<Color> colors,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: colors,
+          ),
+          borderRadius: AppRadius.extraLarge,
+          boxShadow: [
+            BoxShadow(
+              color: colors.first.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: AppRadius.medium,
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.bodyLarge(context).copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.bodySmall(context).copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withValues(alpha: 0.85), size: 16),
           ],
         ),
       ),

@@ -114,14 +114,9 @@ class _AppButtonState extends State<AppButton>
     switch (widget.variant) {
       case AppButtonVariant.primary:
         return BoxDecoration(
-          gradient: _isEnabled
-              ? (_isPressed
-                  ? const LinearGradient(
-                      colors: [AppColors.primaryDark, AppColors.primary],
-                    )
-                  : AppColors.gradientPrimary)
-              : null,
-          color: _isEnabled ? null : borderColor,
+          color: _isEnabled
+              ? (_isPressed ? AppColors.primaryDark : AppColors.primary)
+              : borderColor,
           borderRadius: AppRadius.large,
           boxShadow: _isEnabled && !_isPressed ? AppShadow.primary : [],
         );

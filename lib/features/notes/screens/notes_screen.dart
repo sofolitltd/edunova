@@ -5,6 +5,9 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
+import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_filter_chip.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../services/notes_service.dart';
 import 'note_detail_screen.dart';
@@ -55,18 +58,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundFor(context),
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceFor(context),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text('নোটস', style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-      ),
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'নোটস'),
       body: SafeArea(
         child: Column(
         children: [
@@ -77,17 +70,25 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal),
               children: [
-                _buildFilterChip('All Classes', _selectedClass == null, () {
-                  setState(() => _selectedClass = null);
-                  _loadNotes();
-                }),
+                AppFilterChip(
+                  label: 'All Classes',
+                  isSelected: _selectedClass == null,
+                  onTap: () {
+                    setState(() => _selectedClass = null);
+                    _loadNotes();
+                  },
+                ),
                 const SizedBox(width: 8),
                 ..._classes.map((c) => Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildFilterChip('Class $c', _selectedClass == c, () {
-                    setState(() => _selectedClass = c);
-                    _loadNotes();
-                  }),
+                  child: AppFilterChip(
+                    label: 'Class $c',
+                    isSelected: _selectedClass == c,
+                    onTap: () {
+                      setState(() => _selectedClass = c);
+                      _loadNotes();
+                    },
+                  ),
                 )),
               ],
             ),
@@ -99,17 +100,25 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal),
               children: [
-                _buildFilterChip('All Subjects', _selectedSubject == null, () {
-                  setState(() => _selectedSubject = null);
-                  _loadNotes();
-                }),
+                AppFilterChip(
+                  label: 'All Subjects',
+                  isSelected: _selectedSubject == null,
+                  onTap: () {
+                    setState(() => _selectedSubject = null);
+                    _loadNotes();
+                  },
+                ),
                 const SizedBox(width: 8),
                 ..._subjects.map((s) => Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _buildFilterChip(s, _selectedSubject == s, () {
-                    setState(() => _selectedSubject = s);
-                    _loadNotes();
-                  }),
+                  child: AppFilterChip(
+                    label: s,
+                    isSelected: _selectedSubject == s,
+                    onTap: () {
+                      setState(() => _selectedSubject = s);
+                      _loadNotes();
+                    },
+                  ),
                 )),
               ],
             ),
@@ -136,28 +145,6 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         ],
       ),
     ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceFor(context),
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.borderFor(context)),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.label(context).copyWith(
-            color: selected ? Colors.white : AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
     );
   }
 

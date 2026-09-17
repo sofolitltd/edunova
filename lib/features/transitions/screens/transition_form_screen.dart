@@ -5,6 +5,8 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
+import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_app_bar.dart';
 import '../services/transitions_service.dart';
 
 class TransitionFormScreen extends ConsumerStatefulWidget {
@@ -46,18 +48,8 @@ class _TransitionFormScreenState extends ConsumerState<TransitionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundFor(context),
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceFor(context),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text('বার্ষিক ট্রানজিশন', style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-      ),
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'বার্ষিক ট্রানজিশন'),
       body: SafeArea(
         child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
