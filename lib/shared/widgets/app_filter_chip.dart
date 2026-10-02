@@ -14,6 +14,7 @@ class AppFilterChip extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.icon,
+    this.color,
   });
 
   final String label;
@@ -21,11 +22,17 @@ class AppFilterChip extends StatelessWidget {
   final VoidCallback onTap;
   final IconData? icon;
 
+  /// Accent used for the selected fill/border and icon tint. Defaults to
+  /// [AppColors.primary] — pass a per-category color where chips represent
+  /// distinct types (e.g. content categories).
+  final Color? color;
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = color ?? AppColors.primary;
     final unselectedFill = isDark ? AppColors.darkSurfaceElevated : AppColors.primarySurface;
-    final unselectedBorder = AppColors.primary.withValues(alpha: isDark ? 0.4 : 0.25);
+    final unselectedBorder = accent.withValues(alpha: isDark ? 0.4 : 0.25);
     final unselectedText = isDark ? AppColors.primaryLight : AppColors.primaryDark;
 
     return GestureDetector(
@@ -35,9 +42,9 @@ class AppFilterChip extends StatelessWidget {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : unselectedFill,
+          color: isSelected ? accent : unselectedFill,
           borderRadius: BorderRadius.circular(AppRadius.full),
           border: isSelected ? null : Border.all(color: unselectedBorder, width: 1),
         ),
@@ -47,7 +54,7 @@ class AppFilterChip extends StatelessWidget {
             if (icon != null) ...[
               Icon(
                 icon,
-                size: 15,
+                size: 14,
                 color: isSelected ? Colors.white : unselectedText,
               ),
               const SizedBox(width: 6),
@@ -55,6 +62,8 @@ class AppFilterChip extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.label(context).copyWith(
+                fontSize: 12,
+                height: 1.0,
                 color: isSelected ? Colors.white : unselectedText,
                 fontWeight: FontWeight.w600,
               ),

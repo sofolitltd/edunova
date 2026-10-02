@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_filter_chip.dart';
 import '../../../shared/widgets/app_scaffold.dart';
 import '../services/article_service.dart';
 import 'article_detail_screen.dart';
@@ -112,51 +112,10 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                             const SizedBox(width: AppSpacing.sm),
                         itemBuilder: (context, index) {
                           final key = _categoryLabels.keys.elementAt(index);
-                          final isSelected = _selectedCategory == key;
-                          return GestureDetector(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() => _selectedCategory = key);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.surfaceFor(context),
-                                borderRadius: BorderRadius.circular(AppRadius.full),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.borderFor(context),
-                                  width: 1.5,
-                                ),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: AppColors.primary
-                                              .withValues(alpha: 0.25),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: Text(
-                                _categoryLabels[key]!,
-                                style:
-                                    AppTextStyles.bodySmall(context).copyWith(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.textSecondaryFor(context),
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                ),
-                              ),
-                            ),
+                          return AppFilterChip(
+                            label: _categoryLabels[key]!,
+                            isSelected: _selectedCategory == key,
+                            onTap: () => setState(() => _selectedCategory = key),
                           );
                         },
                       ),

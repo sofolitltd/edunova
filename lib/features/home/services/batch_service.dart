@@ -248,6 +248,105 @@ class SuggestedBatch {
   }
 }
 
+class BatchStudent {
+  final int id;
+  final String fullName;
+  final String studentId;
+
+  BatchStudent({required this.id, required this.fullName, required this.studentId});
+
+  factory BatchStudent.fromJson(Map<String, dynamic> json) {
+    return BatchStudent(
+      id: json['id'] ?? 0,
+      fullName: json['full_name'] ?? '',
+      studentId: json['student_id'] ?? '',
+    );
+  }
+}
+
+class BatchNotice {
+  final int id;
+  final String title;
+  final String body;
+  final String sentAt;
+  final bool readByMe;
+
+  BatchNotice({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.sentAt,
+    required this.readByMe,
+  });
+
+  factory BatchNotice.fromJson(Map<String, dynamic> json) {
+    return BatchNotice(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      body: json['body'] ?? '',
+      sentAt: json['sent_at'] ?? '',
+      readByMe: json['read_by_me'] ?? false,
+    );
+  }
+}
+
+class BatchPayment {
+  final int id;
+  final double amount;
+  final String method;
+  final String transactionId;
+  final String status;
+  final String receiptNumber;
+  final String month;
+  final int year;
+  final String notes;
+  final String createdAt;
+
+  BatchPayment({
+    required this.id,
+    required this.amount,
+    required this.method,
+    required this.transactionId,
+    required this.status,
+    required this.receiptNumber,
+    required this.month,
+    required this.year,
+    required this.notes,
+    required this.createdAt,
+  });
+
+  factory BatchPayment.fromJson(Map<String, dynamic> json) {
+    return BatchPayment(
+      id: json['id'] ?? 0,
+      amount: (json['amount'] ?? 0).toDouble(),
+      method: json['method'] ?? '',
+      transactionId: json['transaction_id'] ?? '',
+      status: json['status'] ?? 'pending',
+      receiptNumber: json['receipt_number'] ?? '',
+      month: json['month'] ?? '',
+      year: json['year'] ?? 0,
+      notes: json['notes'] ?? '',
+      createdAt: json['created_at'] ?? '',
+    );
+  }
+}
+
+class BatchPayments {
+  final int monthlyFee;
+  final List<BatchPayment> payments;
+
+  BatchPayments({required this.monthlyFee, required this.payments});
+
+  factory BatchPayments.fromJson(Map<String, dynamic> json) {
+    return BatchPayments(
+      monthlyFee: json['monthly_fee'] ?? 0,
+      payments: ((json['payments'] as List?) ?? [])
+          .map((e) => BatchPayment.fromJson(e))
+          .toList(),
+    );
+  }
+}
+
 class BatchService {
   Map<String, String> _headers(String? token) {
     final h = <String, String>{'Content-Type': 'application/json'};
@@ -326,4 +425,78 @@ class BatchService {
     }
     return [];
   }
+
+  Future<List<BatchStudent>> getBatchStudents(String? token, int batchId) async {
+    final response = await http.get(
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/students'),
+      headers: _headers(token),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as List;
+      return data.map((e) => BatchStudent.fromJson(e)).toList();
+    }
+    return [];
+  }
+
+  Future<List<BatchNotice>> getBatchNotices(String? token, int batchId) async {
+    final response = await http.get(
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/notices'),
+      headers: _headers(token),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as List;
+      return data.map((e) => BatchNotice.fromJson(e)).toList();
+    }
+    return [];
+  }
+
+  Future<BatchPayments?> getBatchPayments(String? token, int batchId) async {
+    final response = await http.get(
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/payments'),
+      headers: _headers(token),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return BatchPayments.fromJson(jsonDecode(response.body));
+    }
+    return null;
+  }
+
+  /// Submits a monthly fee payment (bKash/Nagad-style manual transfer) for
+  /// admin review. Throws [BatchPaymentException] with the server's error
+  /// message on failure.
+  Future<void> payBatchFee(
+    String? token,
+    int batchId, {
+    required double amount,
+    required String method,
+    required String transactionId,
+    required String senderNumber,
+    required String month,
+    required int year,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/payments'),
+      headers: _headers(token),
+      body: jsonEncode({
+        'amount': amount,
+        'method': method,
+        'transaction_id': transactionId,
+        'sender_number': senderNumber,
+        'month': month,
+        'year': year,
+      }),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final data = jsonDecode(response.body);
+      throw BatchPaymentException(data['error'] ?? 'পেমেন্ট জমা দেওয়া যায়নি');
+    }
+  }
+}
+
+class BatchPaymentException implements Exception {
+  final String message;
+  BatchPaymentException(this.message);
+
+  @override
+  String toString() => message;
 }

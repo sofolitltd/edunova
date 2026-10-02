@@ -11,6 +11,14 @@ import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../exams/services/exam_service.dart' as exam_service;
 import '../services/batch_service.dart';
+import '../widgets/class_detail/class_detail_about_tab.dart';
+import '../widgets/class_detail/class_detail_schedule_tab.dart';
+import '../widgets/class_detail/class_detail_exam_tab.dart';
+import '../widgets/class_detail/class_detail_leaderboard_tab.dart';
+import '../widgets/class_detail/class_detail_result_tab.dart';
+import '../widgets/class_detail/class_detail_students_tab.dart';
+import '../widgets/class_detail/class_detail_notice_tab.dart';
+import '../widgets/class_detail/class_detail_bill_tab.dart';
 import 'tabs/exam_tab.dart';
 
 class ClassDetailScreen extends ConsumerStatefulWidget {
@@ -41,20 +49,29 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
   List<BatchExam> _exams = [];
   List<LeaderboardEntry> _leaderboard = [];
   List<BatchMyResult> _myResults = [];
+  List<BatchStudent> _students = [];
+  List<BatchNotice> _notices = [];
+  BatchPayments? _payments;
   bool _subjectsLoaded = false;
   bool _examsLoaded = false;
   bool _leaderboardLoaded = false;
   bool _myResultsLoaded = false;
+  bool _studentsLoaded = false;
+  bool _noticesLoaded = false;
+  bool _paymentsLoaded = false;
   bool _subjectsLoading = false;
   bool _examsLoading = false;
   bool _leaderboardLoading = false;
   bool _myResultsLoading = false;
+  bool _studentsLoading = false;
+  bool _noticesLoading = false;
+  bool _paymentsLoading = false;
   String? _token;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     _tabController.addListener(_onTabChanged);
     _load();
   }
@@ -79,6 +96,15 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
     }
     if (_tabController.index == 4 && !_myResultsLoaded && !_myResultsLoading) {
       _loadMyResults();
+    }
+    if (_tabController.index == 5 && !_studentsLoaded && !_studentsLoading) {
+      _loadStudents();
+    }
+    if (_tabController.index == 6 && !_noticesLoaded && !_noticesLoading) {
+      _loadNotices();
+    }
+    if (_tabController.index == 7 && !_paymentsLoaded && !_paymentsLoading) {
+      _loadPayments();
     }
   }
 
@@ -138,557 +164,60 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final title = _batch?.name.isNotEmpty == true ? _batch!.name : widget.fallbackTitle;
-
-    return AppScaffold(
-      appBar: AppAppBar(title: title),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null || _batch == null
-              ? _buildError()
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.screenHorizontal,
-                        AppSpacing.xl,
-                        AppSpacing.screenHorizontal,
-                        0,
-                      ),
-                      child: _buildHeader(context, l10n, _batch!),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // ── Tab Bar ─────────────────────────────
-                    Material(
-                      color: AppColors.surfaceFor(context),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        tabAlignment: TabAlignment.start,
-                        indicatorColor: widget.color,
-                        labelColor: widget.color,
-                        unselectedLabelColor: AppColors.textTertiaryFor(context),
-                        labelStyle: AppTextStyles.label(context).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                        unselectedLabelStyle: AppTextStyles.label(context).copyWith(
-                          fontSize: 13,
-                        ),
-                        tabs: [
-                          Tab(text: l10n.aboutClass),
-                          Tab(text: l10n.weeklySchedule),
-                          const Tab(text: 'পরীক্ষা'),
-                          const Tab(text: 'লিডারবোর্ড'),
-                          const Tab(text: 'ফলাফল'),
-                        ],
-                      ),
-                    ),
-
-                    // ── Tab Bar View ────────────────────────
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildAboutTab(context, l10n, _batch!),
-                          _buildScheduleTab(context, _batch!),
-                          _buildExamTab(context),
-                          _buildLeaderboardTab(context),
-                          _buildResultTab(context),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-    );
+  Future<void> _loadStudents() async {
+    setState(() => _studentsLoading = true);
+    final students = await _service.getBatchStudents(_token, widget.batchId);
+    if (!mounted) return;
+    setState(() {
+      _students = students;
+      _studentsLoaded = true;
+      _studentsLoading = false;
+    });
   }
 
-  Widget _buildError() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-            const SizedBox(height: AppSpacing.md),
-            Text(_error ?? 'ব্যাচ পাওয়া যায়নি', textAlign: TextAlign.center),
-            const SizedBox(height: AppSpacing.md),
-            ElevatedButton(onPressed: _load, child: const Text('আবার চেষ্টা করুন')),
-          ],
-        ),
-      ),
-    );
+  Future<void> _loadNotices() async {
+    setState(() => _noticesLoading = true);
+    final notices = await _service.getBatchNotices(_token, widget.batchId);
+    if (!mounted) return;
+    setState(() {
+      _notices = notices;
+      _noticesLoaded = true;
+      _noticesLoading = false;
+    });
   }
 
-  // ── Header Card ────────────────────────────────
-  Widget _buildHeader(BuildContext context, AppLocalizations l10n, BatchDetail batch) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [widget.color, widget.color.withValues(alpha: 0.7)],
-        ),
-        borderRadius: AppRadius.large,
-        boxShadow: [
-          BoxShadow(
-            color: widget.color.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: AppRadius.medium,
-            ),
-            child: const Icon(
-              Icons.school_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            batch.name,
-            style: AppTextStyles.h2(context).copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Container(height: 1, color: Colors.white.withValues(alpha: 0.15)),
-          const SizedBox(height: AppSpacing.lg),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              _buildHeaderChip(
-                context,
-                icon: Icons.schedule_rounded,
-                value: batch.schedule.isNotEmpty ? batch.schedule : '-',
-              ),
-              _buildHeaderChip(
-                context,
-                icon: Icons.people_rounded,
-                value: '${batch.studentCount} ${l10n.students}',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  Future<void> _loadPayments() async {
+    setState(() => _paymentsLoading = true);
+    final payments = await _service.getBatchPayments(_token, widget.batchId);
+    if (!mounted) return;
+    setState(() {
+      _payments = payments;
+      _paymentsLoaded = true;
+      _paymentsLoading = false;
+    });
   }
 
-  Widget _buildHeaderChip(BuildContext context, {
-    required IconData icon,
-    required String value,
+  Future<void> _payFee({
+    required double amount,
+    required String method,
+    required String transactionId,
+    required String senderNumber,
+    required String month,
+    required int year,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.85)),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: AppTextStyles.bodySmall(context).copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+    return _service.payBatchFee(
+      _token,
+      widget.batchId,
+      amount: amount,
+      method: method,
+      transactionId: transactionId,
+      senderNumber: senderNumber,
+      month: month,
+      year: year,
     );
   }
 
-  // ── About Tab ──────────────────────────────────
-  Widget _buildAboutTab(BuildContext context, AppLocalizations l10n, BatchDetail batch) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-        vertical: AppSpacing.xl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (batch.courseDescription.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceFor(context),
-                borderRadius: AppRadius.medium,
-                border: Border.all(color: AppColors.borderFor(context)),
-              ),
-              child: Text(batch.courseDescription, style: AppTextStyles.bodyLarge(context)),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-          ],
-          _infoRow(context, Icons.school_rounded, 'ক্লাস',
-              text: batch.classLevel.isNotEmpty ? 'Class ${batch.classLevel}' : '-'),
-          _infoRow(context, Icons.category_rounded, 'ধরন',
-              trailing: batch.type.isNotEmpty ? _typePill(context, batch.type) : const Text('-')),
-          _infoRow(context, Icons.wb_sunny_rounded, 'শিফট',
-              text: batch.shift.isNotEmpty ? batch.shift : '-'),
-          _infoRow(context, Icons.people_rounded, 'মোট শিক্ষার্থী',
-              trailing: _countBadge(context, '${batch.studentCount}')),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Text('শিক্ষক', style: AppTextStyles.h3(context)),
-              const SizedBox(width: AppSpacing.sm),
-              if (batch.teachers.isNotEmpty)
-                _countBadge(context, '${batch.teachers.length} জন'),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (batch.teachers.isEmpty)
-            Text('এখনো কোনো শিক্ষক নিয়োগ করা হয়নি', style: AppTextStyles.bodySmall(context))
-          else
-            ...batch.teachers.map((t) => Container(
-                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceFor(context),
-                    borderRadius: AppRadius.small,
-                    border: Border.all(color: AppColors.borderFor(context)),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: widget.color.withValues(alpha: 0.1),
-                        child: Text(
-                          t.fullName.isNotEmpty ? t.fullName[0].toUpperCase() : '?',
-                          style: AppTextStyles.label(context).copyWith(
-                            color: widget.color,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Text(t.fullName, style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w500)),
-                      ),
-                    ],
-                  ),
-                )),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoRow(BuildContext context, IconData icon, String label, {String? text, Widget? trailing}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: AppColors.textTertiaryFor(context)),
-          const SizedBox(width: AppSpacing.sm),
-          Text(label, style: AppTextStyles.bodySmall(context)),
-          const Spacer(),
-          trailing ??
-              Text(text ?? '-', style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _typePill(BuildContext context, String type) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Text(
-        type,
-        style: AppTextStyles.bodySmall(context).copyWith(
-          color: AppColors.success,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _countBadge(BuildContext context, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: widget.color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Text(
-        value,
-        style: AppTextStyles.bodySmall(context).copyWith(
-          color: widget.color,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
-  // ── Schedule Tab ───────────────────────────────
-  static const _weekDays = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  static const _weekDayAbbrev = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-
-  Widget _buildScheduleTab(BuildContext context, BatchDetail batch) {
-    if (_subjectsLoading && !_subjectsLoaded) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // No per-subject schedule set up for this batch yet — fall back to the
-    // old flat batch-wide days/time so the tab isn't empty.
-    if (_subjects.isEmpty) {
-      final activeDays = batch.days.map((d) => d.toLowerCase()).toSet();
-      final timeRange = batch.startTime.isNotEmpty && batch.endTime.isNotEmpty
-          ? '${batch.startTime} - ${batch.endTime}'
-          : batch.schedule;
-
-      return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screenHorizontal,
-          vertical: AppSpacing.xl,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: _weekDays.map((day) {
-            final active = activeDays.contains(day.toLowerCase());
-            return _buildScheduleRow(context, day, active ? timeRange : '-', active);
-          }).toList(),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-        vertical: AppSpacing.xl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(_weekDays.length, (i) {
-          final dayKey = _weekDayAbbrev[i].toLowerCase();
-          final dayEntries = _subjects
-              .where((s) => s.days.any((d) => d.toLowerCase() == dayKey))
-              .toList()
-            ..sort((a, b) => a.startTime.compareTo(b.startTime));
-          return _buildDaySubjects(context, _weekDays[i], dayEntries);
-        }),
-      ),
-    );
-  }
-
-  Widget _buildDaySubjects(BuildContext context, String day, List<BatchSubjectSchedule> entries) {
-    final active = entries.isNotEmpty;
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: active ? widget.color.withValues(alpha: 0.05) : AppColors.surfaceFor(context),
-        borderRadius: AppRadius.small,
-        border: Border.all(
-          color: active ? widget.color.withValues(alpha: 0.2) : AppColors.borderFor(context),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: active ? widget.color : AppColors.textTertiaryFor(context),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                day,
-                style: AppTextStyles.bodyLarge(context).copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: active ? AppColors.textPrimaryFor(context) : AppColors.textTertiaryFor(context),
-                ),
-              ),
-            ],
-          ),
-          if (!active)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, left: 20),
-              child: Text(
-                '-',
-                style: AppTextStyles.bodySmall(context).copyWith(color: AppColors.textTertiaryFor(context)),
-              ),
-            )
-          else
-            ...entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.sm, left: 20),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          e.teacherName.isNotEmpty ? '${e.subjectName} (${e.teacherName})' : e.subjectName,
-                          style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      if (e.startTime.isNotEmpty || e.endTime.isNotEmpty)
-                        Text(
-                          '${e.startTime} - ${e.endTime}',
-                          style: AppTextStyles.bodySmall(context).copyWith(color: widget.color),
-                        ),
-                    ],
-                  ),
-                )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScheduleRow(BuildContext context, String day, String time, bool active) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: active
-            ? widget.color.withValues(alpha: 0.05)
-            : AppColors.surfaceFor(context),
-        borderRadius: AppRadius.small,
-        border: Border.all(
-          color: active ? widget.color.withValues(alpha: 0.2) : AppColors.borderFor(context),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: active ? widget.color : AppColors.textTertiaryFor(context),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              day,
-              style: AppTextStyles.bodyLarge(context).copyWith(
-                fontWeight: FontWeight.w500,
-                color: active ? AppColors.textPrimaryFor(context) : AppColors.textTertiaryFor(context),
-              ),
-            ),
-          ),
-          Text(
-            time,
-            style: AppTextStyles.bodySmall(context).copyWith(
-              color: active ? widget.color : AppColors.textTertiaryFor(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Exam Tab ───────────────────────────────────
-  Widget _buildExamTab(BuildContext context) {
-    if (_examsLoading && !_examsLoaded) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_exams.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.quiz_outlined, size: 56, color: AppColors.textTertiaryFor(context)),
-              const SizedBox(height: AppSpacing.md),
-              Text('এই ব্যাচের জন্য কোনো পরীক্ষা নেই', style: AppTextStyles.bodyMedium(context)),
-            ],
-          ),
-        ),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-        vertical: AppSpacing.xl,
-      ),
-      itemCount: _exams.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, i) {
-        final e = _exams[i];
-        return GestureDetector(
-          onTap: () => _openExam(context, e),
-          child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceFor(context),
-            borderRadius: AppRadius.small,
-            border: Border.all(
-              color: e.isLive ? AppColors.error.withValues(alpha: 0.3) : AppColors.borderFor(context),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: (e.isLive ? AppColors.error : widget.color).withValues(alpha: 0.1),
-                  borderRadius: AppRadius.small,
-                ),
-                child: Icon(
-                  e.isLive ? Icons.play_circle_filled_rounded : Icons.quiz_rounded,
-                  size: 20,
-                  color: e.isLive ? AppColors.error : widget.color,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(e.title, style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w500)),
-                    Text('${e.date} • ${e.totalQuestions} প্রশ্ন', style: AppTextStyles.bodySmall(context)),
-                  ],
-                ),
-              ),
-              if (e.isLive)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
-                ),
-            ],
-          ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _openExam(BuildContext context, BatchExam exam) async {
+  Future<void> _openExam(BatchExam exam) async {
     final storage = SecureStorageService();
     final token = await storage.readToken();
     try {
@@ -721,168 +250,126 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
     }
   }
 
-  // ── Leaderboard Tab ────────────────────────────
-  Widget _buildLeaderboardTab(BuildContext context) {
-    if (_leaderboardLoading && !_leaderboardLoaded) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_leaderboard.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.emoji_events_outlined, size: 56, color: AppColors.textTertiaryFor(context)),
-              const SizedBox(height: AppSpacing.md),
-              Text('এখনো কোনো ফলাফল নেই', style: AppTextStyles.bodyMedium(context)),
-            ],
-          ),
-        ),
-      );
-    }
-
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final myUserId = ref.watch(authProvider).user?.id;
-    final medalColors = [const Color(0xFFFBBF24), const Color(0xFF94A3B8), const Color(0xFFB45309)];
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-        vertical: AppSpacing.xl,
-      ),
-      itemCount: _leaderboard.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, i) {
-        final e = _leaderboard[i];
-        final isMe = myUserId != null && myUserId == e.userId;
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isMe ? widget.color.withValues(alpha: 0.06) : AppColors.surfaceFor(context),
-            borderRadius: AppRadius.small,
-            border: Border.all(color: isMe ? widget.color.withValues(alpha: 0.3) : AppColors.borderFor(context)),
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 28,
-                child: Text(
-                  '${i + 1}',
-                  style: AppTextStyles.bodyLarge(context).copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: i < 3 ? medalColors[i] : AppColors.textTertiaryFor(context),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: widget.color.withValues(alpha: 0.1),
-                child: Text(
-                  e.fullName.isNotEmpty ? e.fullName[0].toUpperCase() : '?',
-                  style: AppTextStyles.label(context).copyWith(color: widget.color, fontWeight: FontWeight.w700),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return AppScaffold(
+      appBar: const AppAppBar(title: 'ব্যাচ বিস্তারিত'),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null || _batch == null
+              ? _buildError()
+              : Column(
                   children: [
-                    Text(
-                      isMe ? '${e.fullName} (তুমি)' : e.fullName,
-                      style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600),
+                    // ── Tab Bar ─────────────────────────────
+                    Container(
+                      color: Theme.of(context).cardColor,
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        dividerColor: Colors.transparent,
+                        indicatorColor: widget.color,
+                        labelColor: widget.color,
+                        unselectedLabelColor: AppColors.textTertiaryFor(context),
+                        labelStyle: AppTextStyles.label(context).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                        unselectedLabelStyle: AppTextStyles.label(context).copyWith(
+                          fontSize: 13,
+                        ),
+                        tabs: [
+                          Tab(text: l10n.aboutClass),
+                          Tab(text: l10n.weeklySchedule),
+                          const Tab(text: 'পরীক্ষা'),
+                          const Tab(text: 'লিডারবোর্ড'),
+                          const Tab(text: 'ফলাফল'),
+                          const Tab(text: 'শিক্ষার্থী'),
+                          const Tab(text: 'নোটিস'),
+                          const Tab(text: 'বিল'),
+                        ],
+                      ),
                     ),
-                    Text('${e.examsTaken} পরীক্ষা দিয়েছে', style: AppTextStyles.bodySmall(context)),
+
+                    // ── Tab Bar View ────────────────────────
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          ClassDetailAboutTab(batch: _batch!, color: widget.color),
+                          ClassDetailScheduleTab(
+                            batch: _batch!,
+                            subjects: _subjects,
+                            loading: _subjectsLoading,
+                            loaded: _subjectsLoaded,
+                            color: widget.color,
+                          ),
+                          ClassDetailExamTab(
+                            exams: _exams,
+                            loading: _examsLoading,
+                            loaded: _examsLoaded,
+                            color: widget.color,
+                            onExamTap: _openExam,
+                          ),
+                          ClassDetailLeaderboardTab(
+                            leaderboard: _leaderboard,
+                            loading: _leaderboardLoading,
+                            loaded: _leaderboardLoaded,
+                            color: widget.color,
+                            myUserId: myUserId,
+                          ),
+                          ClassDetailResultTab(
+                            results: _myResults,
+                            loading: _myResultsLoading,
+                            loaded: _myResultsLoaded,
+                          ),
+                          ClassDetailStudentsTab(
+                            students: _students,
+                            loading: _studentsLoading,
+                            loaded: _studentsLoaded,
+                            color: widget.color,
+                          ),
+                          ClassDetailNoticeTab(
+                            notices: _notices,
+                            loading: _noticesLoading,
+                            loaded: _noticesLoaded,
+                            color: widget.color,
+                          ),
+                          ClassDetailBillTab(
+                            monthlyFee: _payments?.monthlyFee ?? 0,
+                            payments: _payments?.payments ?? [],
+                            loading: _paymentsLoading,
+                            loaded: _paymentsLoaded,
+                            color: widget.color,
+                            onPay: _payFee,
+                            onPaid: _loadPayments,
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              Text(
-                '${e.totalScore}',
-                style: AppTextStyles.h3(context).copyWith(color: widget.color),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
-  // ── Result Tab ─────────────────────────────────
-  Color _percentColor(double percent) {
-    if (percent >= 70) return AppColors.success;
-    if (percent >= 50) return AppColors.warning;
-    return AppColors.error;
-  }
-
-  Widget _buildResultTab(BuildContext context) {
-    if (_myResultsLoading && !_myResultsLoaded) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_myResults.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.bar_chart_rounded, size: 56, color: AppColors.textTertiaryFor(context)),
-              const SizedBox(height: AppSpacing.md),
-              Text('এখনো কোনো ফলাফল নেই', style: AppTextStyles.bodyMedium(context)),
-            ],
-          ),
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            const SizedBox(height: AppSpacing.md),
+            Text(_error ?? 'ব্যাচ পাওয়া যায়নি', textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton(onPressed: _load, child: const Text('আবার চেষ্টা করুন')),
+          ],
         ),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-        vertical: AppSpacing.xl,
       ),
-      itemCount: _myResults.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, i) {
-        final r = _myResults[i];
-        final color = _percentColor(r.percentage);
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceFor(context),
-            borderRadius: AppRadius.small,
-            border: Border.all(color: AppColors.borderFor(context)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: AppRadius.small),
-                child: Center(
-                  child: Text(
-                    '${r.percentage.toStringAsFixed(0)}%',
-                    style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      r.examTitle,
-                      style: AppTextStyles.bodyLarge(context).copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(r.examDate, style: AppTextStyles.bodySmall(context)),
-                  ],
-                ),
-              ),
-              Text('${r.score}/${r.totalQuestions}', style: AppTextStyles.bodySmall(context)),
-            ],
-          ),
-        );
-      },
     );
   }
 }

@@ -7,6 +7,7 @@ import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/services/secure_storage_service.dart';
 import '../../../shared/widgets/app_scaffold.dart';
 import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_filter_chip.dart';
 import '../services/daily_content_service.dart';
 
 class DailyContentScreen extends ConsumerStatefulWidget {
@@ -88,35 +89,15 @@ class _DailyContentScreenState extends ConsumerState<DailyContentScreen> {
                       separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final t = _types[index];
-                        final selected = _selectedType == t['value'];
-                        return GestureDetector(
+                        return AppFilterChip(
+                          label: t['label'] as String,
+                          icon: t['icon'] as IconData,
+                          color: t['color'] as Color,
+                          isSelected: _selectedType == t['value'],
                           onTap: () {
                             setState(() => _selectedType = t['value'] as String);
                             _loadData();
                           },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: selected ? t['color'] as Color : AppColors.surfaceFor(context),
-                              borderRadius: BorderRadius.circular(AppRadius.full),
-                              border: Border.all(
-                                color: selected ? t['color'] as Color : AppColors.borderFor(context),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(t['icon'] as IconData, size: 16, color: selected ? Colors.white : AppColors.textSecondary),
-                                const SizedBox(width: 6),
-                                Text(t['label'] as String, style: TextStyle(
-                                  color: selected ? Colors.white : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                )),
-                              ],
-                            ),
-                          ),
                         );
                       },
                     ),

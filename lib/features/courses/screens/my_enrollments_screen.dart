@@ -8,6 +8,7 @@ import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_filter_chip.dart';
 import '../../../shared/widgets/app_scaffold.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../services/course_service.dart';
@@ -206,28 +207,10 @@ class _MyEnrollmentsScreenState extends ConsumerState<MyEnrollmentsScreen> {
   }
 
   Widget _filterTab(String value, String label) {
-    final isActive = _filter == value;
-    return GestureDetector(
+    return AppFilterChip(
+      label: label,
+      isSelected: _filter == value,
       onTap: () => setState(() => _filter = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.primary : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isActive ? AppColors.primary : AppColors.borderFor(context),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isActive ? Colors.white : AppColors.textSecondaryFor(context),
-          ),
-        ),
-      ),
     );
   }
 
