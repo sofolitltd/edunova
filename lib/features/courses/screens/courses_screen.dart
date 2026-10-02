@@ -206,7 +206,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.school_outlined, size: 64,
-                color: AppColors.textSecondaryFor(context).withOpacity(0.3)),
+                color: AppColors.textSecondaryFor(context).withValues(alpha: 0.3)),
             const SizedBox(height: AppSpacing.md),
             Text('কোনো কোর্স পাওয়া যায়নি',
                 style: AppTextStyles.bodyLarge(context).copyWith(
@@ -238,7 +238,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderFor(context).withOpacity(0.1)),
+        border: Border.all(color: AppColors.borderFor(context).withValues(alpha: 0.1)),
         boxShadow: AppShadow.small,
       ),
       child: Column(
@@ -249,7 +249,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
             height: 100,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [accentColor, accentColor.withOpacity(0.7)],
+                colors: [accentColor, accentColor.withValues(alpha: 0.7)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -267,7 +267,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -297,7 +297,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -315,10 +315,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
                       color: course.type == 'free'
-                          ? Colors.green.withOpacity(0.8)
+                          ? Colors.green.withValues(alpha: 0.8)
                           : course.type == 'online'
-                              ? Colors.blue.withOpacity(0.8)
-                              : Colors.orange.withOpacity(0.8),
+                              ? Colors.blue.withValues(alpha: 0.8)
+                              : Colors.orange.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -459,7 +459,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.06),
+        color: AppColors.primary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(

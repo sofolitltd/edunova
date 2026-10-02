@@ -15,12 +15,15 @@ class AuthService {
   }) async {
     try {
       log('Registering user: $mobile', name: 'AuthService');
-      await _api.post('/register', body: {
-        'full_name': fullName,
-        'mobile': mobile,
-        'password': password,
-        'student_class': studentClass,
-      });
+      await _api.post(
+        '/register',
+        body: {
+          'full_name': fullName,
+          'mobile': mobile,
+          'password': password,
+          'student_class': studentClass,
+        },
+      );
       log('Registration successful: $mobile', name: 'AuthService');
     } on ApiException catch (e) {
       log('Registration failed: ${e.message}', name: 'AuthService', error: e);
@@ -34,10 +37,10 @@ class AuthService {
   }) async {
     try {
       log('Logging in: $mobile', name: 'AuthService');
-      final data = await _api.post('/login', body: {
-        'mobile': mobile,
-        'password': password,
-      });
+      final data = await _api.post(
+        '/login',
+        body: {'mobile': mobile, 'password': password},
+      );
 
       log('Login successful: $mobile', name: 'AuthService');
       return AuthResult(
@@ -50,19 +53,17 @@ class AuthService {
     }
   }
 
-  Future<void> verifyOTP({
-    required String mobile,
-    required String code,
-  }) async {
+  Future<void> verifyOTP({required String mobile, required String code}) async {
     try {
       log('Verifying OTP for: $mobile', name: 'AuthService');
-      await _api.post('/verify-otp', body: {
-        'mobile': mobile,
-        'code': code,
-      });
+      await _api.post('/verify-otp', body: {'mobile': mobile, 'code': code});
       log('OTP verified: $mobile', name: 'AuthService');
     } on ApiException catch (e) {
-      log('OTP verification failed: ${e.message}', name: 'AuthService', error: e);
+      log(
+        'OTP verification failed: ${e.message}',
+        name: 'AuthService',
+        error: e,
+      );
       throw AuthException(e.message);
     }
   }
@@ -70,9 +71,7 @@ class AuthService {
   Future<void> resendOTP({required String mobile}) async {
     try {
       log('Resending OTP to: $mobile', name: 'AuthService');
-      await _api.post('/resend-otp', body: {
-        'mobile': mobile,
-      });
+      await _api.post('/resend-otp', body: {'mobile': mobile});
       log('OTP resent: $mobile', name: 'AuthService');
     } on ApiException catch (e) {
       log('Resend OTP failed: ${e.message}', name: 'AuthService', error: e);
@@ -98,13 +97,18 @@ class AuthService {
   }) async {
     try {
       log('Changing password', name: 'AuthService');
-      await _api.put('/change-password', body: {
-        'old_password': oldPassword,
-        'new_password': newPassword,
-      }, token: token);
+      await _api.put(
+        '/change-password',
+        body: {'old_password': oldPassword, 'new_password': newPassword},
+        token: token,
+      );
       log('Password changed', name: 'AuthService');
     } on ApiException catch (e) {
-      log('Change password failed: ${e.message}', name: 'AuthService', error: e);
+      log(
+        'Change password failed: ${e.message}',
+        name: 'AuthService',
+        error: e,
+      );
       throw AuthException(e.message);
     }
   }
@@ -122,24 +126,30 @@ class AuthService {
     String studentClass = '',
     String shift = '',
     String school = '',
-    String address = '',
+    String presentAddress = '',
+    String permanentAddress = '',
   }) async {
     try {
       log('Updating profile', name: 'AuthService');
-      final data = await _api.put('/user/profile', body: {
-        'full_name': fullName,
-        'father_name': fatherName,
-        'father_mobile': fatherMobile,
-        'mother_name': motherName,
-        'mother_mobile': motherMobile,
-        'notification_mobile': notificationMobile,
-        'gender': gender,
-        'religion': religion,
-        'student_class': studentClass,
-        'shift': shift,
-        'school': school,
-        'address': address,
-      }, token: token);
+      final data = await _api.put(
+        '/user/profile',
+        body: {
+          'full_name': fullName,
+          'father_name': fatherName,
+          'father_mobile': fatherMobile,
+          'mother_name': motherName,
+          'mother_mobile': motherMobile,
+          'notification_mobile': notificationMobile,
+          'gender': gender,
+          'religion': religion,
+          'student_class': studentClass,
+          'shift': shift,
+          'school': school,
+          'present_address': presentAddress,
+          'permanent_address': permanentAddress,
+        },
+        token: token,
+      );
       log('Profile updated', name: 'AuthService');
       return User.fromJson(data);
     } on ApiException catch (e) {
@@ -153,7 +163,11 @@ class AuthService {
       log('Fetching dashboard stats', name: 'AuthService');
       return await _api.get('/user/dashboard', token: token);
     } on ApiException catch (e) {
-      log('Fetch dashboard stats failed: ${e.message}', name: 'AuthService', error: e);
+      log(
+        'Fetch dashboard stats failed: ${e.message}',
+        name: 'AuthService',
+        error: e,
+      );
       throw AuthException(e.message);
     }
   }
@@ -165,13 +179,18 @@ class AuthService {
   }) async {
     try {
       log('Registering device token', name: 'AuthService');
-      await _api.post('/device-token', body: {
-        'token': fcmToken,
-        'platform': platform,
-      }, token: token);
+      await _api.post(
+        '/device-token',
+        body: {'token': fcmToken, 'platform': platform},
+        token: token,
+      );
       log('Device token registered', name: 'AuthService');
     } on ApiException catch (e) {
-      log('Device token registration failed: ${e.message}', name: 'AuthService', error: e);
+      log(
+        'Device token registration failed: ${e.message}',
+        name: 'AuthService',
+        error: e,
+      );
       throw AuthException(e.message);
     }
   }
@@ -199,7 +218,8 @@ class User {
   final String studentClass;
   final String shift;
   final String school;
-  final String address;
+  final String presentAddress;
+  final String permanentAddress;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -218,7 +238,8 @@ class User {
     this.studentClass = '',
     this.shift = '',
     this.school = '',
-    this.address = '',
+    this.presentAddress = '',
+    this.permanentAddress = '',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -239,23 +260,36 @@ class User {
       studentClass: json['student_class'] ?? '',
       shift: json['shift'] ?? '',
       school: json['school'] ?? '',
-      address: json['address'] ?? '',
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      presentAddress: json['present_address'] ?? '',
+      permanentAddress: json['permanent_address'] ?? '',
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updated_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
-  bool get isProfileComplete {
-    return fullName.isNotEmpty &&
-        gender.isNotEmpty &&
-        religion.isNotEmpty &&
-        studentClass.isNotEmpty &&
-        shift.isNotEmpty &&
-        school.isNotEmpty &&
-        address.isNotEmpty &&
-        fatherName.isNotEmpty &&
-        fatherMobile.isNotEmpty;
-  }
+  static const _requiredProfileFields = 10;
+
+  int get _filledProfileFields => [
+    fullName,
+    gender,
+    religion,
+    studentClass,
+    shift,
+    school,
+    presentAddress,
+    permanentAddress,
+    fatherName,
+    fatherMobile,
+  ].where((field) => field.isNotEmpty).length;
+
+  bool get isProfileComplete => _filledProfileFields == _requiredProfileFields;
+
+  int get profileCompletionPercent =>
+      ((_filledProfileFields / _requiredProfileFields) * 100).round();
 }
 
 class AuthException implements Exception {

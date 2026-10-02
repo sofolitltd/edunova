@@ -28,11 +28,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get signInToContinue => 'আপনার অ্যাকাউন্টে সাইন ইন করুন';
 
   @override
-  String get joinEduNova => 'এডুনোভায় যোগ দিন';
-
-  @override
-  String get createAccountToStart =>
-      'শেখা শুরু করতে আপনার অ্যাকাউন্ট তৈরি করুন';
+  String get createAccountToStart => 'আপনার অ্যাকাউন্ট তৈরি করুন';
 
   @override
   String get mobileNumber => 'মোবাইল নম্বর';
@@ -48,6 +44,12 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get forgotPassword => 'পাসওয়ার্ড ভুলে গেছেন?';
+
+  @override
+  String get newStudentQuestion => 'নতুন শিক্ষার্থী?';
+
+  @override
+  String get joinNowPrompt => 'অ্যাকাউন্ট নেই? এখনই যুক্ত হোন';
 
   @override
   String get dontHaveAccount => 'অ্যাকাউন্ট নেই? ';
@@ -114,6 +116,79 @@ class AppLocalizationsBn extends AppLocalizations {
       'একটি যাচাইকরণ কোড পেতে আপনার মোবাইল নম্বর দিন';
 
   @override
+  String get secureRecoveryBadge => 'নিরাপদ পুনরুদ্ধার';
+
+  @override
+  String get forgotPasswordHeroTitle => 'পাসওয়ার্ড ভুলে গেছেন?';
+
+  @override
+  String get forgotPasswordHeroSubtitle =>
+      'চিন্তার কিছু নেই! আপনার নিবন্ধিত মোবাইল নম্বর বা ইমেইল দিন, আমরা তাৎক্ষণিক একটি ভেরিফিকেশন কোড (OTP) পাঠাব।';
+
+  @override
+  String get encryptedRecoveryNote =>
+      '১০০% স্বয়ংক্রিয় ও এনক্রিপ্টেড রিকভারি প্রসেস';
+
+  @override
+  String get recoveryMethodLabel => 'পুনরুদ্ধার মাধ্যম বেছে নিন';
+
+  @override
+  String get mobileMethodTab => 'মোবাইল নম্বর';
+
+  @override
+  String get emailMethodTab => 'ইমেইল অ্যাড্রেস';
+
+  @override
+  String get smsOtpBadge => 'এসএমএস OTP';
+
+  @override
+  String get emailOtpBadge => 'ইমেইল OTP';
+
+  @override
+  String get registeredMobileNumber => 'নিবন্ধিত মোবাইল নম্বর';
+
+  @override
+  String get registeredEmailAddress => 'নিবন্ধিত ইমেইল ঠিকানা';
+
+  @override
+  String get smsOtpHint =>
+      'এসএমএস এ ৪-সংখ্যার OTP কোড পাঠানো হবে। মেয়াদ ৫ মিনিট।';
+
+  @override
+  String get emailOtpHint =>
+      'ইমেইলের ইনবক্স বা স্প্যাম ফোল্ডারে রিসেট কোড চেক করুন।';
+
+  @override
+  String get enterEmail => 'অনুগ্রহ করে আপনার ইমেইল ঠিকানা দিন';
+
+  @override
+  String get validEmail => 'অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা দিন';
+
+  @override
+  String get needHelpTitle => 'সাহায্য বা একাউন্ট সহায়তা প্রয়োজন?';
+
+  @override
+  String get supportHours => 'সকাল ৯টা - রাত ১০টা';
+
+  @override
+  String get hotlineCall => 'হটলাইন কল';
+
+  @override
+  String get liveChatLabel => 'লাইভ চ্যাট';
+
+  @override
+  String get whatsappLabel => 'হোয়াটসঅ্যাপ';
+
+  @override
+  String get helpDeskShortcode => 'শর্টকোড হেল্পডেস্ক';
+
+  @override
+  String get viewFaqGuide => 'FAQ গাইড দেখুন';
+
+  @override
+  String get rememberedPassword => 'পাসওয়ার্ড মনে পড়েছে?';
+
+  @override
   String get sendOtp => 'কোড পাঠান';
 
   @override
@@ -123,7 +198,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get otpSentTo => 'কোড পাঠানো হয়েছে';
 
   @override
-  String get enterOtp => '৬ অঙ্কের কোড দিন';
+  String get enterOtp => '৪ অঙ্কের কোড দিন';
 
   @override
   String get invalidOtp => 'সঠিক কোড দিন';
@@ -145,6 +220,36 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get seconds => 'সেকেন্ড';
+
+  @override
+  String get otpStepBadge => 'পদক্ষেপ ২/৩ • সুরক্ষা যাচাই';
+
+  @override
+  String get otpStepTitle => 'যাচাইকরণ কোড লিখুন';
+
+  @override
+  String get otpDigitsLabel => '৪-সংখ্যার কোড প্রবেশ করান';
+
+  @override
+  String get otpPendingBadge => 'অপেক্ষমাণ';
+
+  @override
+  String get changeNumber => 'নম্বর পরিবর্তন করুন';
+
+  @override
+  String get pasteCodeFromSms => 'SMS থেকে কোড পেস্ট করুন';
+
+  @override
+  String get getCodeByVoiceCall => 'ভয়েস কলে কোড পান';
+
+  @override
+  String get otpSecurityNote => 'আপনার ওটিপি (OTP) কারো সাথে শেয়ার করবেন না';
+
+  @override
+  String get otpTroubleQuestion => 'কোড পেতে সমস্যা হচ্ছে?';
+
+  @override
+  String get getHelp => 'সাহায্য নিন';
 
   @override
   String get resetPasswordSuccess => 'পাসওয়ার্ড রিসেট সফল হয়েছে!';
@@ -170,6 +275,45 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get backToLogin => 'লগইনে ফিরুন';
+
+  @override
+  String get otpVerifiedBadge => 'OTP ভেরিফাইড ✓';
+
+  @override
+  String get createPasswordHeroSubtitle =>
+      'আপনার অ্যাকাউন্টের সুরক্ষার জন্য একটি শক্তিশালী ও নিরাপদ পাসওয়ার্ড নির্বাচন করুন।';
+
+  @override
+  String get passwordStrengthWeak => 'দুর্বল';
+
+  @override
+  String get passwordStrengthGood => 'মধ্যম শক্তি';
+
+  @override
+  String get passwordStrengthStrong => 'অত্যন্ত শক্তিশালী';
+
+  @override
+  String get securityRequirementsTitle => 'নিরাপত্তা প্রয়োজনীয়তা নির্দেশিকা';
+
+  @override
+  String get reqPasswordLength => 'কমপক্ষে ৬টি অক্ষর বা ৪-৬ ডিজিটের পিন';
+
+  @override
+  String get reqPasswordSpecial =>
+      'অন্তত একটি সংখ্যা ও বিশেষ চিহ্ন (@, #, \$, &)';
+
+  @override
+  String get reqPasswordCase => 'বড় ও ছোট হাতের অক্ষরের মিশ্রণ (A-Z ও a-z)';
+
+  @override
+  String get logoutAllDevicesTitle => 'সব ডিভাইস থেকে লগআউট করুন';
+
+  @override
+  String get logoutAllDevicesSubtitle =>
+      'অন্যান্য ফোন বা ব্রাউজারের সেশন তৎক্ষণাৎ বন্ধ করে নিরাপদ রাখুন।';
+
+  @override
+  String get cancelBackToLogin => 'বাতিল করে লগইনে ফিরুন';
 
   @override
   String get verifyAccount => 'অ্যাকাউন্ট যাচাই করুন';
@@ -390,10 +534,10 @@ class AppLocalizationsBn extends AppLocalizations {
   String get gender => 'লিঙ্গ';
 
   @override
-  String get male => 'পুরুষ';
+  String get male => 'ছেলে';
 
   @override
-  String get female => 'মহিলা';
+  String get female => 'মেয়ে';
 
   @override
   String get religion => 'ধর্ম';
@@ -487,6 +631,15 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get fullAddress => 'সম্পূর্ণ ঠিকানা';
+
+  @override
+  String get presentAddress => 'বর্তমান ঠিকানা';
+
+  @override
+  String get permanentAddress => 'স্থায়ী ঠিকানা';
+
+  @override
+  String get sameAsPresentAddress => 'বর্তমান ঠিকানার মতোই';
 
   @override
   String get question => 'প্রশ্ন';

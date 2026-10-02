@@ -4,15 +4,16 @@ import '../models/auth_state.dart';
 import '../services/auth_service.dart';
 import '../../../shared/services/secure_storage_service.dart';
 import '../../../shared/services/notification_service.dart';
+import '../../courses/services/course_service.dart';
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
   final SecureStorageService _storage;
 
   AuthNotifier({AuthService? authService, SecureStorageService? storage})
-      : _authService = authService ?? AuthService(),
-        _storage = storage ?? SecureStorageService(),
-        super(const AuthState());
+    : _authService = authService ?? AuthService(),
+      _storage = storage ?? SecureStorageService(),
+      super(const AuthState());
 
   Future<void> init() async {
     final token = await _storage.readToken();
@@ -34,10 +35,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
         updatedAt: DateTime.now(),
       ),
     );
+
+    // Secure storage only keeps a flattened subset of the profile (used for
+    // fast app-start rendering). Fetch the full record so fields like
+    // gender/religion/shift/school/address aren't seen as empty on every
+    // restart, which would otherwise bounce a completed profile back to
+    // the profile-setup screen.
+    try {
+      final fullUser = await _authService.getUser(token);
+      state = state.copyWith(user: fullUser);
+    } catch (_) {
+      // Offline or request failed — keep the flattened user from storage.
+    }
+
+    _syncBatchNotificationTopics(token);
   }
 
   void reset() {
     state = state.copyWith(status: AuthStatus.initial, errorMessage: null);
+  }
+
+  // Fire-and-forget: subscribes this device to the FCM topic for every
+  // batch the user is enrolled in, so batch-targeted admin notifications
+  // reach devices that enrolled before topic subscription was wired up.
+  void _syncBatchNotificationTopics(String token) {
+    CourseService().getMyEnrollments(token).then((enrollments) {
+      NotificationService().syncBatchSubscriptions(
+        enrollments.map((e) => e.batchId),
+      );
+    }).catchError((_) {});
   }
 
   Future<void> login({required String mobile, required String password}) async {
@@ -70,11 +96,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // Register FCM token after login
       NotificationService().initialize(this);
+      if (result.token != null) {
+        _syncBatchNotificationTopics(result.token!);
+      }
     } on AuthException catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
     } catch (e) {
       state = state.copyWith(
         status: AuthStatus.error,
@@ -105,10 +131,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // flow: AuthFlow.registerOtp,
       ).copyWith(pendingMobile: mobile);
     } on AuthException catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
     } catch (_) {
       state = state.copyWith(
         status: AuthStatus.error,
@@ -117,10 +140,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> verifyOTP({
-    required String mobile,
-    required String code,
-  }) async {
+  Future<void> verifyOTP({required String mobile, required String code}) async {
     state = const AuthState(status: AuthStatus.loading);
 
     try {
@@ -128,10 +148,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = const AuthState(status: AuthStatus.success);
     } on AuthException catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
     } catch (_) {
       state = state.copyWith(
         status: AuthStatus.error,
@@ -170,10 +187,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       state = state.copyWith(status: AuthStatus.success);
     } on AuthException catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
     } catch (_) {
       state = state.copyWith(
         status: AuthStatus.error,
@@ -194,7 +208,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String studentClass = '',
     String shift = '',
     String school = '',
-    String address = '',
+    String presentAddress = '',
+    String permanentAddress = '',
   }) async {
     final token = state.token;
     if (token == null) throw AuthException('Not authenticated');
@@ -213,7 +228,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         studentClass: studentClass,
         shift: shift,
         school: school,
-        address: address,
+        presentAddress: presentAddress,
+        permanentAddress: permanentAddress,
       );
       state = state.copyWith(user: updatedUser);
       await _storage.saveUser(
@@ -236,7 +252,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _authService.registerDeviceToken(token: token, fcmToken: fcmToken);
     } catch (_) {}
   }
-
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

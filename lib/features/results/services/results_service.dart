@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class ResultItem {
@@ -94,16 +94,6 @@ class ResultSummary {
 }
 
 class ResultsService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   final http.Client _client;
   ResultsService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -115,7 +105,7 @@ class ResultsService {
 
   Future<List<ResultItem>> getResults({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/results'),
+      Uri.parse('${ApiClient.baseUrl}/results'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -127,7 +117,7 @@ class ResultsService {
 
   Future<ResultSummary> getSummary({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/results/summary'),
+      Uri.parse('${ApiClient.baseUrl}/results/summary'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {

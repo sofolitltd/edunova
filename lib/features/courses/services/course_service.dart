@@ -1,6 +1,47 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+
+import '../../../shared/services/api_client.dart';
+
 import 'package:http/http.dart' as http;
+
+class PromoCodeResult {
+  final int discountAmount;
+  final int finalAmount;
+
+  PromoCodeResult({required this.discountAmount, required this.finalAmount});
+}
+
+class AvailablePromoCode {
+  final String code;
+  final String discountType;
+  final int discountValue;
+  final int? remaining;
+  final DateTime? expiresAt;
+
+  AvailablePromoCode({
+    required this.code,
+    required this.discountType,
+    required this.discountValue,
+    this.remaining,
+    this.expiresAt,
+  });
+
+  factory AvailablePromoCode.fromJson(Map<String, dynamic> json) {
+    return AvailablePromoCode(
+      code: json['code'] ?? '',
+      discountType: json['discount_type'] ?? 'fixed',
+      discountValue: json['discount_value'] ?? 0,
+      remaining: json['remaining'],
+      expiresAt: json['expires_at'] != null
+          ? DateTime.tryParse(json['expires_at'])
+          : null,
+    );
+  }
+
+  String get label => discountType == 'percentage'
+      ? '$discountValue% ছাড়'
+      : '৳$discountValue ছাড়';
+}
 
 class Course {
   final int id;
@@ -79,36 +120,28 @@ class Course {
       curriculum: json['curriculum'] is String
           ? json['curriculum']
           : json['curriculum'] != null
-              ? jsonEncode(json['curriculum'])
-              : '',
+          ? jsonEncode(json['curriculum'])
+          : '',
       features: json['features'] is String
           ? json['features']
           : json['features'] != null
-              ? jsonEncode(json['features'])
-              : '',
+          ? jsonEncode(json['features'])
+          : '',
     );
   }
 }
 
 class CourseService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   Future<List<Course>> getCourses({String? classLevel, String? type}) async {
     final params = <String, String>{};
-    if (classLevel != null && classLevel != 'all') params['class_level'] = classLevel;
+    if (classLevel != null && classLevel != 'all')
+      params['class_level'] = classLevel;
     if (type != null && type != 'all') params['type'] = type;
 
     final uri = params.isEmpty
-        ? Uri.parse('$_baseUrl/courses')
-        : Uri.parse('$_baseUrl/courses').replace(queryParameters: params);
+        ? Uri.parse('${ApiClient.baseUrl}/courses')
+        : Uri.parse('${ApiClient.baseUrl}/courses')
+              .replace(queryParameters: params);
 
     final response = await http.get(
       uri,
@@ -126,7 +159,7 @@ class CourseService {
 
   Future<List<Course>> getFreeCourses() async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/user/free-courses'),
+      Uri.parse('${ApiClient.baseUrl}/user/free-courses'),
       headers: {'Content-Type': 'application/json'},
     );
 
@@ -141,7 +174,7 @@ class CourseService {
 
   Future<Course> getCourseById(int id) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/courses/$id'),
+      Uri.parse('${ApiClient.baseUrl}/courses/$id'),
       headers: {'Content-Type': 'application/json'},
     );
 
@@ -154,19 +187,34 @@ class CourseService {
   }
 
   Future<void> enroll({
-    required int courseId,
+    int courseId = 0,
+    int? batchId,
     required String fullName,
     required String mobile,
     int amount = 0,
+    String? promoCode,
+    String? paymentMethod,
+    String? mobileBanking,
+    String? sentFrom,
+    String? transactionId,
   }) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/enrollments'),
+      Uri.parse('${ApiClient.baseUrl}/enrollments'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'course_id': courseId,
+        if (courseId != 0) 'course_id': courseId,
+        if (batchId != null) 'batch_id': batchId,
         'full_name': fullName,
         'mobile': mobile,
         'amount': amount,
+        if (promoCode != null && promoCode.isNotEmpty) 'promo_code': promoCode,
+        if (paymentMethod != null && paymentMethod.isNotEmpty)
+          'payment_method': paymentMethod,
+        if (mobileBanking != null && mobileBanking.isNotEmpty)
+          'mobile_banking': mobileBanking,
+        if (sentFrom != null && sentFrom.isNotEmpty) 'sent_from': sentFrom,
+        if (transactionId != null && transactionId.isNotEmpty)
+          'transaction_id': transactionId,
       }),
     );
 
@@ -176,9 +224,57 @@ class CourseService {
     }
   }
 
+  Future<PromoCodeResult> validatePromoCode({
+    required String code,
+    required String mobile,
+    int courseId = 0,
+    int? batchId,
+    required int amount,
+  }) async {
+    final data = await ApiClient().post(
+      '/promo-codes/validate',
+      body: {
+        'code': code,
+        'mobile': mobile,
+        'course_id': courseId,
+        if (batchId != null) 'batch_id': batchId,
+        'amount': amount,
+      },
+    );
+    return PromoCodeResult(
+      discountAmount: data['discount_amount'] ?? 0,
+      finalAmount: data['final_amount'] ?? amount,
+    );
+  }
+
+  Future<List<AvailablePromoCode>> getAvailablePromoCodes({
+    required int courseId,
+    int? batchId,
+  }) async {
+    final uri = Uri.parse('${ApiClient.baseUrl}/promo-codes/available')
+        .replace(
+          queryParameters: {
+            'course_id': '$courseId',
+            if (batchId != null) 'batch_id': '$batchId',
+          },
+        );
+
+    final response = await http.get(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List;
+      return list.map((p) => AvailablePromoCode.fromJson(p)).toList();
+    } else {
+      throw Exception('Failed to load promo codes');
+    }
+  }
+
   Future<List<Enrollment>> getMyEnrollments(String token) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/user/enrollments'),
+      Uri.parse('${ApiClient.baseUrl}/user/enrollments'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

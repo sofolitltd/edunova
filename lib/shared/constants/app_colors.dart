@@ -130,4 +130,9 @@ class AppColors {
       Theme.of(context).brightness == Brightness.dark
           ? darkGradientBackground
           : gradientBackground;
+
+  static Color primarySurfaceFor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? darkSurfaceElevated
+          : primarySurface;
 }

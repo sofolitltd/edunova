@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class StudentTransition {
@@ -67,16 +67,6 @@ class StudentFeedback {
 }
 
 class TransitionsService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   final http.Client _client;
   TransitionsService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -94,7 +84,7 @@ class TransitionsService {
     String? token,
   }) async {
     final response = await _client.post(
-      Uri.parse('$_baseUrl/transitions'),
+      Uri.parse('${ApiClient.baseUrl}/transitions'),
       headers: _headers(token: token),
       body: jsonEncode({
         'from_class': fromClass,
@@ -111,7 +101,7 @@ class TransitionsService {
 
   Future<List<StudentTransition>> getMyTransitions({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/transitions'),
+      Uri.parse('${ApiClient.baseUrl}/transitions'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -124,7 +114,7 @@ class TransitionsService {
 
   Future<List<StudentFeedback>> getMyFeedback({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/transitions/feedback'),
+      Uri.parse('${ApiClient.baseUrl}/transitions/feedback'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {

@@ -85,7 +85,7 @@ class _DailyContentScreenState extends ConsumerState<DailyContentScreen> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal),
                       itemCount: _types.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final t = _types[index];
                         final selected = _selectedType == t['value'];
@@ -130,7 +130,7 @@ class _DailyContentScreenState extends ConsumerState<DailyContentScreen> {
                         : ListView.separated(
                             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal),
                             itemCount: _items.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
                             itemBuilder: (context, index) => _buildContentCard(_items[index]),
                           ),
                   ),

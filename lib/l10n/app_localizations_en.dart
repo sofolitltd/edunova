@@ -28,10 +28,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInToContinue => 'Sign in to your account';
 
   @override
-  String get joinEduNova => 'Join EduNova';
-
-  @override
-  String get createAccountToStart => 'Create your account to start learning';
+  String get createAccountToStart => 'Create your account';
 
   @override
   String get mobileNumber => 'Mobile Number';
@@ -47,6 +44,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get forgotPassword => 'Forgot Password?';
+
+  @override
+  String get newStudentQuestion => 'New student?';
+
+  @override
+  String get joinNowPrompt => 'Don\'t have an account? Join now';
 
   @override
   String get dontHaveAccount => 'Don\'t have an account? ';
@@ -113,6 +116,79 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter your mobile number to receive a verification code';
 
   @override
+  String get secureRecoveryBadge => 'Secure Recovery';
+
+  @override
+  String get forgotPasswordHeroTitle => 'Forgot your password?';
+
+  @override
+  String get forgotPasswordHeroSubtitle =>
+      'No worries! Enter your registered mobile number or email and we\'ll send you a verification code (OTP) instantly.';
+
+  @override
+  String get encryptedRecoveryNote =>
+      '100% automated & encrypted recovery process';
+
+  @override
+  String get recoveryMethodLabel => 'Choose a recovery method';
+
+  @override
+  String get mobileMethodTab => 'Mobile Number';
+
+  @override
+  String get emailMethodTab => 'Email Address';
+
+  @override
+  String get smsOtpBadge => 'SMS OTP';
+
+  @override
+  String get emailOtpBadge => 'Email OTP';
+
+  @override
+  String get registeredMobileNumber => 'Registered Mobile Number';
+
+  @override
+  String get registeredEmailAddress => 'Registered Email Address';
+
+  @override
+  String get smsOtpHint =>
+      'A 4-digit OTP code will be sent via SMS. Valid for 5 minutes.';
+
+  @override
+  String get emailOtpHint =>
+      'Check your inbox or spam folder for the reset code.';
+
+  @override
+  String get enterEmail => 'Please enter your email address';
+
+  @override
+  String get validEmail => 'Please enter a valid email address';
+
+  @override
+  String get needHelpTitle => 'Need help or account support?';
+
+  @override
+  String get supportHours => '9 AM - 10 PM';
+
+  @override
+  String get hotlineCall => 'Hotline Call';
+
+  @override
+  String get liveChatLabel => 'Live Chat';
+
+  @override
+  String get whatsappLabel => 'WhatsApp';
+
+  @override
+  String get helpDeskShortcode => 'Helpdesk Shortcode';
+
+  @override
+  String get viewFaqGuide => 'View FAQ Guide';
+
+  @override
+  String get rememberedPassword => 'Remembered your password?';
+
+  @override
   String get sendOtp => 'Send Code';
 
   @override
@@ -122,7 +198,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get otpSentTo => 'Code sent to';
 
   @override
-  String get enterOtp => 'Enter 6-digit code';
+  String get enterOtp => 'Enter 4-digit code';
 
   @override
   String get invalidOtp => 'Please enter a valid code';
@@ -144,6 +220,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get seconds => 's';
+
+  @override
+  String get otpStepBadge => 'Step 2/3 • Security verification';
+
+  @override
+  String get otpStepTitle => 'Enter verification code';
+
+  @override
+  String get otpDigitsLabel => 'Enter the 4-digit code';
+
+  @override
+  String get otpPendingBadge => 'Pending';
+
+  @override
+  String get changeNumber => 'Change number';
+
+  @override
+  String get pasteCodeFromSms => 'Paste code from SMS';
+
+  @override
+  String get getCodeByVoiceCall => 'Get code via voice call';
+
+  @override
+  String get otpSecurityNote => 'Don\'t share your OTP with anyone';
+
+  @override
+  String get otpTroubleQuestion => 'Having trouble receiving the code?';
+
+  @override
+  String get getHelp => 'Get Help';
 
   @override
   String get resetPasswordSuccess => 'Password reset successful!';
@@ -169,6 +275,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToLogin => 'Back to Login';
+
+  @override
+  String get otpVerifiedBadge => 'OTP Verified ✓';
+
+  @override
+  String get createPasswordHeroSubtitle =>
+      'Choose a strong, secure password to protect your account.';
+
+  @override
+  String get passwordStrengthWeak => 'Weak';
+
+  @override
+  String get passwordStrengthGood => 'Good strength';
+
+  @override
+  String get passwordStrengthStrong => 'Very strong';
+
+  @override
+  String get securityRequirementsTitle => 'Security requirements';
+
+  @override
+  String get reqPasswordLength => 'At least 6 characters or a 4-6 digit PIN';
+
+  @override
+  String get reqPasswordSpecial =>
+      'At least one number and a special symbol (@, #, \$, &)';
+
+  @override
+  String get reqPasswordCase =>
+      'A mix of uppercase and lowercase letters (A-Z and a-z)';
+
+  @override
+  String get logoutAllDevicesTitle => 'Log out from all devices';
+
+  @override
+  String get logoutAllDevicesSubtitle =>
+      'Immediately end sessions on other phones or browsers for safety.';
+
+  @override
+  String get cancelBackToLogin => 'Cancel and return to login';
 
   @override
   String get verifyAccount => 'Verify Account';
@@ -389,10 +535,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gender => 'Gender';
 
   @override
-  String get male => 'Male';
+  String get male => 'Boy';
 
   @override
-  String get female => 'Female';
+  String get female => 'Girl';
 
   @override
   String get religion => 'Religion';
@@ -486,6 +632,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fullAddress => 'Full Address';
+
+  @override
+  String get presentAddress => 'Present Address';
+
+  @override
+  String get permanentAddress => 'Permanent Address';
+
+  @override
+  String get sameAsPresentAddress => 'Same as present address';
 
   @override
   String get question => 'Question';

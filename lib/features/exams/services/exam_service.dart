@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class Exam {
@@ -132,16 +132,6 @@ class ExamResult {
 }
 
 class ExamService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   final http.Client _client;
   ExamService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -153,7 +143,7 @@ class ExamService {
 
   Future<List<Exam>> getLiveExams({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/live-exams'),
+      Uri.parse('${ApiClient.baseUrl}/live-exams'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -165,7 +155,7 @@ class ExamService {
 
   Future<List<ExamQuestion>> getExamQuestions(int examId, {String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/exams/$examId/questions'),
+      Uri.parse('${ApiClient.baseUrl}/exams/$examId/questions'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -182,7 +172,7 @@ class ExamService {
     String? token,
   }) async {
     final response = await _client.post(
-      Uri.parse('$_baseUrl/exams/$examId/submit'),
+      Uri.parse('${ApiClient.baseUrl}/exams/$examId/submit'),
       headers: _headers(token: token),
       body: jsonEncode({'score': score, 'total_questions': totalQuestions}),
     );
@@ -194,7 +184,7 @@ class ExamService {
 
   Future<List<ExamResult>> getExamResults({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/my-exam-results'),
+      Uri.parse('${ApiClient.baseUrl}/my-exam-results'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {

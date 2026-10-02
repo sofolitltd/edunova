@@ -302,7 +302,11 @@ class _MyEnrollmentsScreenState extends ConsumerState<MyEnrollmentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      e.courseName.isNotEmpty ? e.courseName : 'কোর্স',
+                      e.courseName.isNotEmpty
+                          ? e.courseName
+                          : e.batchName.isNotEmpty
+                              ? e.batchName
+                              : 'এনরোলমেন্ট',
                       style: AppTextStyles.bodyLarge(context).copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -311,7 +315,9 @@ class _MyEnrollmentsScreenState extends ConsumerState<MyEnrollmentsScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      e.courseType == 'free' ? 'ফ্রী কোর্স' : 'পেইড কোর্স',
+                      e.courseName.isNotEmpty
+                          ? (e.courseType == 'free' ? 'ফ্রী কোর্স' : 'পেইড কোর্স')
+                          : (e.amount == 0 ? 'ফ্রী ব্যাচ' : 'পেইড ব্যাচ'),
                       style: AppTextStyles.bodySmall(context).copyWith(
                         color: AppColors.textSecondaryFor(context),
                       ),

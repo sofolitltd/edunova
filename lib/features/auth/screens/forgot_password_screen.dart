@@ -3,15 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../shared/widgets/app_scaffold.dart';
 import '../../../shared/widgets/app_app_bar.dart';
-import '../../../shared/widgets/app_text_field.dart';
-import '../../../shared/widgets/app_button.dart';
 import '../../../shared/constants/app_colors.dart';
-import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../app/theme_provider.dart';
+import '../widgets/forgot_password/forgot_password_hero_cards.dart';
+import '../widgets/forgot_password/forgot_password_support_card.dart';
+import '../widgets/forgot_password/forgot_password_mobile_step.dart';
+import '../widgets/forgot_password/forgot_password_otp_step.dart';
+import '../widgets/forgot_password/forgot_password_password_step.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -25,11 +27,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _mobileController = TextEditingController();
-  final _otpController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _logoutAllDevices = true;
+
+  static const int _otpLength = 4;
+  final List<TextEditingController> _otpDigitControllers =
+      List.generate(_otpLength, (_) => TextEditingController());
+  final List<FocusNode> _otpFocusNodes =
+      List.generate(_otpLength, (_) => FocusNode());
+  String? _otpError;
 
   int _currentStep = 1;
   bool _isLoading = false;
@@ -57,12 +66,83 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
   @override
   void dispose() {
     _mobileController.dispose();
-    _otpController.dispose();
+    for (final controller in _otpDigitControllers) {
+      controller.dispose();
+    }
+    for (final node in _otpFocusNodes) {
+      node.dispose();
+    }
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _resendTimer?.cancel();
     _animController.dispose();
     super.dispose();
+  }
+
+  String get _otpCode =>
+      _otpDigitControllers.map((controller) => controller.text).join();
+
+  void _onOtpDigitChanged(int index, String value) {
+    if (_otpError != null) {
+      setState(() => _otpError = null);
+    }
+    if (value.isNotEmpty) {
+      HapticFeedback.selectionClick();
+      if (index < _otpLength - 1) {
+        _otpFocusNodes[index + 1].requestFocus();
+      } else {
+        _otpFocusNodes[index].unfocus();
+      }
+    }
+  }
+
+  void _onOtpBackspace(int index) {
+    if (index > 0) {
+      _otpFocusNodes[index - 1].requestFocus();
+      _otpDigitControllers[index - 1].clear();
+      setState(() {});
+    }
+  }
+
+  Future<void> _handlePasteOtp() async {
+    final data = await Clipboard.getData('text/plain');
+    final digits = data?.text?.replaceAll(RegExp(r'\D'), '') ?? '';
+    if (digits.length < _otpLength) return;
+
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _otpError = null;
+      for (var i = 0; i < _otpLength; i++) {
+        _otpDigitControllers[i].text = digits[i];
+      }
+    });
+    _otpFocusNodes.last.requestFocus();
+  }
+
+  void _handleVoiceCallOtp() {
+    HapticFeedback.selectionClick();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).getCodeByVoiceCall)),
+    );
+  }
+
+  void _handleChangeNumber() {
+    setState(() {
+      _currentStep = 1;
+      _otpError = null;
+      for (final controller in _otpDigitControllers) {
+        controller.clear();
+      }
+      _resendTimer?.cancel();
+    });
+  }
+
+  String _maskedMobileNumber() {
+    final digits = _mobileController.text;
+    if (digits.length < 4) return digits;
+    final visibleStart = digits.substring(0, digits.length > 5 ? 3 : 2);
+    final visibleEnd = digits.substring(digits.length - 3);
+    return '$visibleStart${'•' * (digits.length - visibleStart.length - visibleEnd.length)}$visibleEnd';
   }
 
   void _startResendTimer() {
@@ -95,10 +175,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
   }
 
   void _handleVerifyOtp() {
-    if (_otpController.text.length != 6) return;
+    if (_otpCode.length != _otpLength) {
+      HapticFeedback.mediumImpact();
+      setState(() => _otpError = AppLocalizations.of(context).invalidOtp);
+      return;
+    }
 
     HapticFeedback.lightImpact();
-    setState(() => _isLoading = true);
+    setState(() {
+      _otpError = null;
+      _isLoading = true;
+    });
 
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
@@ -156,14 +243,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
               borderRadius: AppRadius.medium,
               boxShadow: AppShadow.small,
             ),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
+            child: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowLeft01,
               size: 18,
               color: AppColors.textPrimaryFor(context),
             ),
           ),
         ),
-        trailing: _buildThemeToggle(),
       ),
       body: SafeArea(
         child: FadeTransition(
@@ -178,11 +264,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: AppSpacing.xxl),
-                  _buildHeader(l10n),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  _buildStepIndicator(),
+                  _buildHeroForStep(l10n),
                   const SizedBox(height: AppSpacing.xxxl),
                   _buildCurrentStep(l10n),
+                  if (_currentStep == 1) ...[
+                    const SizedBox(height: AppSpacing.xxl),
+                    ForgotPasswordSupportCard(l10n: l10n),
+                  ],
                 ],
               ),
             ),
@@ -192,319 +280,72 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
     );
   }
 
-  Widget _buildHeader(AppLocalizations l10n) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            gradient: AppColors.gradientAccent,
-            borderRadius: AppRadius.extraLarge,
-            boxShadow: AppShadow.primary,
-          ),
-          child: const Icon(
-            Icons.lock_reset_rounded,
-            size: 40,
-            color: AppColors.textOnPrimary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text(
-          _currentStep == 3 ? l10n.passwordResetTitle : l10n.resetPassword,
-          style: AppTextStyles.h1(context),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          _currentStep == 3 ? l10n.passwordResetSubtitle : l10n.resetPasswordSubtitle,
-          style: AppTextStyles.bodyMedium(context).copyWith(
-            color: AppColors.textSecondaryFor(context),
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepIndicator() {
-    return Row(
-      children: [
-        _buildStepDot(1, _currentStep >= 1),
-        _buildStepLine(_currentStep >= 2),
-        _buildStepDot(2, _currentStep >= 2),
-        _buildStepLine(_currentStep >= 3),
-        _buildStepDot(3, _currentStep >= 3),
-      ],
-    );
-  }
-
-  Widget _buildStepDot(int step, bool isActive) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        gradient: isActive ? AppColors.gradientPrimary : null,
-        color: isActive ? null : AppColors.borderFor(context),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          '$step',
-          style: AppTextStyles.label(context).copyWith(
-            color: isActive
-                ? AppColors.textOnPrimary
-                : AppColors.textTertiaryFor(context),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStepLine(bool isActive) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.primary : AppColors.borderFor(context),
-          borderRadius: BorderRadius.circular(1),
-        ),
-      ),
-    );
+  Widget _buildHeroForStep(AppLocalizations l10n) {
+    switch (_currentStep) {
+      case 1:
+        return MobileRecoveryHeroCard(l10n: l10n);
+      case 2:
+        return OtpHeroCard(
+          l10n: l10n,
+          maskedMobileNumber: _maskedMobileNumber(),
+          onChangeNumber: _handleChangeNumber,
+        );
+      default:
+        return PasswordCreateHeroCard(l10n: l10n);
+    }
   }
 
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case 1:
-        return _buildMobileStep(l10n);
+        return ForgotPasswordMobileStep(
+          l10n: l10n,
+          mobileController: _mobileController,
+          isLoading: _isLoading,
+          onSendOtp: _handleSendOtp,
+          onBackToLogin: () => context.go('/login'),
+        );
       case 2:
-        return _buildOtpStep(l10n);
-      case 3:
-        return _buildPasswordStep(l10n);
+        return ForgotPasswordOtpStep(
+          l10n: l10n,
+          otpLength: _otpLength,
+          digitControllers: _otpDigitControllers,
+          focusNodes: _otpFocusNodes,
+          otpError: _otpError,
+          resendSeconds: _resendSeconds,
+          isLoading: _isLoading,
+          onDigitChanged: _onOtpDigitChanged,
+          onBackspace: _onOtpBackspace,
+          onPaste: _handlePasteOtp,
+          onResend: _handleResendOtp,
+          onVoiceCall: _handleVoiceCallOtp,
+          onVerify: _handleVerifyOtp,
+        );
       default:
-        return _buildMobileStep(l10n);
+        return ForgotPasswordPasswordStep(
+          l10n: l10n,
+          passwordController: _passwordController,
+          confirmPasswordController: _confirmPasswordController,
+          obscurePassword: _obscurePassword,
+          obscureConfirmPassword: _obscureConfirmPassword,
+          logoutAllDevices: _logoutAllDevices,
+          isLoading: _isLoading,
+          onFieldChanged: () => setState(() {}),
+          onTogglePasswordVisibility: () {
+            HapticFeedback.selectionClick();
+            setState(() => _obscurePassword = !_obscurePassword);
+          },
+          onToggleConfirmVisibility: () {
+            HapticFeedback.selectionClick();
+            setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+          },
+          onToggleLogoutAllDevices: (value) {
+            HapticFeedback.selectionClick();
+            setState(() => _logoutAllDevices = value);
+          },
+          onSubmit: _handleResetPassword,
+          onCancel: () => context.go('/login'),
+        );
     }
-  }
-
-  Widget _buildMobileStep(AppLocalizations l10n) {
-    return Column(
-      children: [
-        AppTextField(
-          controller: _mobileController,
-          label: l10n.mobileNumber,
-          prefixIcon: Icon(
-            Icons.phone_rounded,
-            size: 20,
-            color: AppColors.textTertiaryFor(context),
-          ),
-          keyboardType: TextInputType.phone,
-          textInputAction: TextInputAction.done,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return l10n.enterMobile;
-            }
-            if (value.length < 10) {
-              return l10n.validMobile;
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: AppSpacing.xxxxl),
-        AppButton(
-          text: l10n.sendOtp,
-          isLoading: _isLoading,
-          isDisabled: _isLoading,
-          onPressed: _handleSendOtp,
-        ),
-        const SizedBox(height: AppSpacing.xxxxxl),
-        GestureDetector(
-          onTap: () => context.go('/login'),
-          child: Text(
-            l10n.backToLogin,
-            style: AppTextStyles.bodyMedium(context).copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOtpStep(AppLocalizations l10n) {
-    return Column(
-      children: [
-        Text(
-          '${l10n.otpSentTo} ${_mobileController.text}',
-          style: AppTextStyles.bodyMedium(context).copyWith(
-            color: AppColors.textSecondaryFor(context),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        AppTextField(
-          controller: _otpController,
-          label: l10n.enterOtp,
-          prefixIcon: Icon(
-            Icons.pin_rounded,
-            size: 20,
-            color: AppColors.textTertiaryFor(context),
-          ),
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.done,
-          validator: (value) {
-            if (value == null || value.length != 6) {
-              return l10n.invalidOtp;
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        AppButton(
-          text: l10n.verifyOtp,
-          isLoading: _isLoading,
-          isDisabled: _isLoading,
-          onPressed: _handleVerifyOtp,
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        GestureDetector(
-          onTap: _resendSeconds > 0 ? null : _handleResendOtp,
-          child: Text(
-            _resendSeconds > 0
-                ? '${l10n.resendOtpIn} $_resendSeconds${l10n.seconds}'
-                : l10n.resendOtp,
-            style: AppTextStyles.bodyMedium(context).copyWith(
-              color: _resendSeconds > 0
-                  ? AppColors.textTertiaryFor(context)
-                  : AppColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordStep(AppLocalizations l10n) {
-    return Column(
-      children: [
-        AppTextField(
-          controller: _passwordController,
-          label: l10n.newPassword,
-          prefixIcon: Icon(
-            Icons.lock_rounded,
-            size: 20,
-            color: AppColors.textTertiaryFor(context),
-          ),
-          obscureText: _obscurePassword,
-          textInputAction: TextInputAction.next,
-          suffixIcon: GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() => _obscurePassword = !_obscurePassword);
-            },
-            child: Icon(
-              _obscurePassword
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-              size: 20,
-              color: AppColors.textTertiaryFor(context),
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return l10n.enterPassword;
-            }
-            if (value.length < 6) {
-              return l10n.passwordMinLength;
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        AppTextField(
-          controller: _confirmPasswordController,
-          label: l10n.confirmNewPassword,
-          prefixIcon: Icon(
-            Icons.lock_rounded,
-            size: 20,
-            color: AppColors.textTertiaryFor(context),
-          ),
-          obscureText: _obscureConfirmPassword,
-          textInputAction: TextInputAction.done,
-          onFieldSubmitted: (_) => _handleResetPassword(),
-          suffixIcon: GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() =>
-                  _obscureConfirmPassword = !_obscureConfirmPassword);
-            },
-            child: Icon(
-              _obscureConfirmPassword
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-              size: 20,
-              color: AppColors.textTertiaryFor(context),
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return l10n.confirmPasswordMsg;
-            }
-            if (value != _passwordController.text) {
-              return l10n.passwordsDontMatch;
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: AppSpacing.xxxxl),
-        AppButton(
-          text: l10n.savePassword,
-          isLoading: _isLoading,
-          isDisabled: _isLoading,
-          onPressed: _handleResetPassword,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildThemeToggle() {
-    final themeMode = ref.watch(themeProvider);
-    final isDark = themeMode == ThemeMode.dark;
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        ref.read(themeProvider.notifier).toggleTheme();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceFor(context),
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(color: AppColors.borderFor(context), width: 1),
-          boxShadow: AppShadow.small,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-              size: 16,
-              color: AppColors.primary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              isDark ? 'Dark' : 'Light',
-              style: AppTextStyles.label(context).copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

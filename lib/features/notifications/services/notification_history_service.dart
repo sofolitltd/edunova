@@ -1,5 +1,7 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import '../../../shared/constants/app_colors.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class AppNotification {
@@ -40,20 +42,74 @@ class AppNotification {
   }
 }
 
-class NotificationHistoryService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
+/// Categories shown as filter chips in the notification list. There is no
+/// backend field for this, so `urgent` is inferred from keywords and the
+/// rest are derived from `linkType`.
+extension AppNotificationCategory on AppNotification {
+  String get category {
+    final text = '$title $body'.toLowerCase();
+    const urgentKeywords = ['urgent', 'জরুরি', 'গুরুত্বপূর্ণ'];
+    if (urgentKeywords.any(text.contains)) return 'urgent';
+    switch (linkType) {
+      case 'exam':
+        return 'exam';
+      case 'course':
+      case 'lesson':
+        return 'class';
+      case 'calendar':
+        return 'vacation';
       default:
-        return 'http://localhost:8080/api';
+        return 'other';
     }
   }
 
+  IconData get icon {
+    switch (linkType) {
+      case 'exam':
+        return Icons.quiz_rounded;
+      case 'course':
+        return Icons.school_rounded;
+      case 'article':
+        return Icons.article_rounded;
+      case 'lesson':
+        return Icons.menu_book_rounded;
+      case 'calendar':
+        return Icons.calendar_today_rounded;
+      case 'doubt':
+        return Icons.help_outline_rounded;
+      case 'enrollment':
+        return Icons.how_to_reg_rounded;
+      default:
+        return Icons.notifications_rounded;
+    }
+  }
+
+  Color get iconColor {
+    switch (linkType) {
+      case 'exam':
+        return Colors.orange;
+      case 'course':
+        return AppColors.primary;
+      case 'article':
+        return Colors.teal;
+      case 'lesson':
+        return Colors.blue;
+      case 'calendar':
+        return Colors.purple;
+      case 'doubt':
+        return Colors.red;
+      case 'enrollment':
+        return AppColors.success;
+      default:
+        return AppColors.primary;
+    }
+  }
+}
+
+class NotificationHistoryService {
   Future<List<AppNotification>> getNotifications(String token, {int page = 1}) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/notifications?page=$page&limit=20'),
+      Uri.parse('${ApiClient.baseUrl}/notifications?page=$page&limit=20'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -71,7 +127,7 @@ class NotificationHistoryService {
 
   Future<void> markAsRead(String token, int notificationId) async {
     await http.put(
-      Uri.parse('$_baseUrl/notifications/$notificationId/read'),
+      Uri.parse('${ApiClient.baseUrl}/notifications/$notificationId/read'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -81,7 +137,7 @@ class NotificationHistoryService {
 
   Future<void> markAllAsRead(String token) async {
     await http.put(
-      Uri.parse('$_baseUrl/notifications/read-all'),
+      Uri.parse('${ApiClient.baseUrl}/notifications/read-all'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

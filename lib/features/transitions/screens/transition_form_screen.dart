@@ -286,7 +286,7 @@ class _TransitionFormScreenState extends ConsumerState<TransitionFormScreen> {
               borderRadius: AppRadius.small,
             ),
             child: Center(
-              child: Text('${transition.gpa.toStringAsFixed(1)}', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 14)),
+              child: Text(transition.gpa.toStringAsFixed(1), style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 14)),
             ),
           ),
           const SizedBox(width: AppSpacing.md),

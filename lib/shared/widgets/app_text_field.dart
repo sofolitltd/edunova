@@ -79,17 +79,17 @@ class _AppTextFieldState extends State<AppTextField>
 
   bool get _hasError => _fieldKey.currentState?.hasError ?? false;
 
-  Color _borderColor(BuildContext context) {
+  Color? _borderColor(BuildContext context) {
     if (_hasError) return AppColors.errorFor(context);
     if (_isFocused) return AppColors.primary;
-    return AppColors.borderFor(context);
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.primarySurface;
-    final defaultSurface = isDark ? AppColors.darkSurface : AppColors.surface;
+    final focusedSurface = isDark ? AppColors.darkSurface : AppColors.surface;
+    final defaultSurface = isDark ? AppColors.darkSurfaceElevated : AppColors.borderLightFor(context);
     final disabledBackground = isDark ? AppColors.darkBackground : AppColors.background;
 
     return Column(
@@ -102,10 +102,8 @@ class _AppTextFieldState extends State<AppTextField>
           style: AppTextStyles.label(context).copyWith(
             color: _hasError
                 ? AppColors.errorFor(context)
-                : _isFocused
-                    ? AppColors.primary
-                    : AppColors.textSecondaryFor(context),
-            fontWeight: _isFocused ? FontWeight.w600 : FontWeight.w500,
+                : AppColors.textPrimaryFor(context),
+            fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -114,15 +112,15 @@ class _AppTextFieldState extends State<AppTextField>
         AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
+          height: 48,
           decoration: BoxDecoration(
             color: widget.enabled
-                ? (_isFocused ? surfaceColor : defaultSurface)
+                ? (_isFocused || _hasError ? focusedSurface : defaultSurface)
                 : disabledBackground,
             borderRadius: AppRadius.medium,
-            border: Border.all(
-              color: _borderColor(context),
-              width: _isFocused ? 1.5 : 1.0,
-            ),
+            border: _borderColor(context) != null
+                ? Border.all(color: _borderColor(context)!, width: _isFocused ? 1.5 : 1.0)
+                : null,
             boxShadow: _isFocused
                 ? [
                     BoxShadow(
@@ -139,7 +137,7 @@ class _AppTextFieldState extends State<AppTextField>
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 14,
+              vertical: 8,
             ),
             child: Row(
               children: [

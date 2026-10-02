@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../shared/constants/app_colors.dart';
 import '../../../../shared/constants/app_spacing.dart';
@@ -429,7 +428,7 @@ class ExamTakingScreen extends StatefulWidget {
   final String? token;
 
   const ExamTakingScreen(
-      {required this.exam, required this.questions, this.token});
+      {super.key, required this.exam, required this.questions, this.token});
 
   @override
   State<ExamTakingScreen> createState() => ExamTakingScreenState();

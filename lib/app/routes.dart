@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/screens/login_screen.dart';
@@ -13,12 +14,16 @@ import '../features/auth/screens/welcome_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/home/screens/exam_detail_screen.dart';
 import '../features/home/screens/class_detail_screen.dart';
+import '../features/home/screens/batch_detail_screen.dart';
+import '../features/home/services/batch_service.dart' show SuggestedBatch;
 import '../features/home/screens/help_support_screen.dart';
 import '../features/home/screens/about_screen.dart';
 import '../features/home/screens/terms_screen.dart';
 import '../features/home/screens/privacy_screen.dart';
 import '../features/articles/screens/articles_screen.dart';
 import '../features/notifications/screens/notification_history_screen.dart';
+import '../features/notifications/screens/notification_detail_screen.dart';
+import '../features/notifications/services/notification_history_service.dart';
 import '../features/courses/screens/courses_screen.dart';
 import '../features/courses/screens/course_detail_screen.dart';
 import '../features/courses/screens/enrollment_screen.dart';
@@ -52,6 +57,7 @@ const _pageTitles = {
   '/privacy': 'Privacy Policy',
   '/articles': 'Articles',
   '/notifications': 'Notifications',
+  '/notification-detail': 'Notification Details',
   '/courses': 'Courses',
   '/my-enrollments': 'My Enrollments',
   '/live-exams': 'Live Exams',
@@ -68,10 +74,17 @@ String titleForPath(String path) {
   page ??= path.startsWith('/courses/')
       ? 'Course Details'
       : path.startsWith('/enroll/')
-          ? 'Enrollment'
-          : null;
+      ? 'Enrollment'
+      : null;
   return page == null ? 'EduNova' : 'EduNova - $page';
 }
+
+/// The gated route (location + extra) a user with an incomplete profile was
+/// trying to reach, so [ProfileSetupScreen] can resume it after completion
+/// instead of always dropping them back on the home screen.
+final pendingGatedRouteProvider = StateProvider<(String, Object?)?>(
+  (ref) => null,
+);
 
 /// Bridges Riverpod auth-state changes to GoRouter's [refreshListenable]
 /// without rebuilding the [GoRouter] instance itself — recreating the
@@ -200,6 +213,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NotificationHistoryScreen(),
       ),
       GoRoute(
+        path: '/notification-detail',
+        name: 'notification-detail',
+        builder: (context, state) {
+          final notification = state.extra as AppNotification;
+          return NotificationDetailScreen(notification: notification);
+        },
+      ),
+      GoRoute(
         path: '/courses',
         name: 'courses',
         builder: (context, state) {
@@ -219,7 +240,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/enroll/:courseId',
         name: 'enrollment',
         builder: (context, state) {
-          final courseId = int.tryParse(state.pathParameters['courseId'] ?? '') ?? 0;
+          final courseId =
+              int.tryParse(state.pathParameters['courseId'] ?? '') ?? 0;
           final extra = state.extra as Map<String, dynamic>? ?? {};
           return EnrollmentScreen(
             courseId: courseId,
@@ -227,6 +249,41 @@ final routerProvider = Provider<GoRouter>((ref) {
             courseTitleBn: extra['courseTitleBn'] ?? '',
             price: extra['price'] ?? 0,
             type: extra['type'] ?? 'paid',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/batches/:id',
+        name: 'batch-detail',
+        builder: (context, state) {
+          final batch = state.extra as SuggestedBatch;
+          return BatchDetailScreen(batch: batch);
+        },
+      ),
+      GoRoute(
+        path: '/enroll-batch/:batchId',
+        name: 'enroll-batch',
+        builder: (context, state) {
+          final batchId =
+              int.tryParse(state.pathParameters['batchId'] ?? '') ?? 0;
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return EnrollmentScreen(
+            batchId: batchId,
+            courseName: extra['batchName'] ?? '',
+            courseTitleBn: extra['batchName'] ?? '',
+            price: extra['price'] ?? 0,
+            type: extra['type'] ?? 'paid',
+            batchClassLevel: extra['classLevel'] ?? '',
+            batchDays: (extra['days'] as List?)?.cast<String>() ?? const [],
+            batchStartTime: extra['startTime'] ?? '',
+            batchEndTime: extra['endTime'] ?? '',
+            batchSchedule: extra['schedule'] ?? '',
+            batchShift: extra['shift'] ?? '',
+            batchCourseName: extra['courseName'] ?? '',
+            admissionFee: extra['admissionFee'] ?? 0,
+            noteFee: extra['noteFee'] ?? 0,
+            monthlyFee: extra['monthlyFee'] ?? 0,
+            maxStudents: extra['maxStudents'] ?? 0,
           );
         },
       ),
@@ -273,7 +330,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final storage = SecureStorageService();
       final seenWelcome = await storage.hasSeenWelcome();
 
-      final isPublicRoute = path == '/login' ||
+      final isPublicRoute =
+          path == '/login' ||
           path == '/register' ||
           path == '/forgot-password' ||
           path == '/otp-verify' ||
@@ -298,10 +356,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/home';
       }
 
-      // Logged in with incomplete profile → force profile-setup
-      if (hasToken && !isPublicRoute) {
+      // Logged in with incomplete profile, trying to enroll in a course or
+      // batch (which needs the student's class/school/guardian info) →
+      // send to profile-setup first, remembering where to resume after.
+      final isGatedRoute =
+          path.startsWith('/enroll/') || path.startsWith('/enroll-batch/');
+      if (hasToken && isGatedRoute) {
         final user = authState.user;
-        if (user != null && !user.isProfileComplete && path != '/profile-setup') {
+        if (user != null && !user.isProfileComplete) {
+          ref.read(pendingGatedRouteProvider.notifier).state = (
+            state.uri.toString(),
+            state.extra,
+          );
           return '/profile-setup';
         }
       }

@@ -14,20 +14,7 @@ class AppTextStyles {
     double height = 1.5,
     Color? color,
   }) {
-    final isBn = Localizations.localeOf(context).languageCode == 'bn';
-
-    if (isBn) {
-      return GoogleFonts.googleSans(
-  
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        letterSpacing: letterSpacing,
-        height: height,
-        color: color,
-      );
-    }
-
-    return GoogleFonts.googleSans(
+    return GoogleFonts.anekBangla(
       fontSize: fontSize,
       fontWeight: fontWeight,
       letterSpacing: letterSpacing,

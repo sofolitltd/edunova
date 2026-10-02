@@ -41,10 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _fadeIn = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOut,
-    );
+    _fadeIn = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
   }
 
@@ -65,7 +62,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       _isLoggingIn = true;
       _errorMessage = null;
     });
-    ref.read(authProvider.notifier).login(
+    ref
+        .read(authProvider.notifier)
+        .login(
           mobile: _mobileController.text.trim(),
           password: _passwordController.text,
         );
@@ -106,124 +105,131 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildHeader(l10n),
-                        const SizedBox(height: 48),
 
-                    if (_errorMessage != null)
-                      _buildErrorBanner(_errorMessage!),
-                    if (_errorMessage != null)
-                      const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: 16),
 
-                    AppTextField(
-                      controller: _mobileController,
-                      label: l10n.mobileNumber,
-                      prefixIcon: Icon(
-                        Icons.phone_rounded,
-                        size: 20,
-                        color: AppColors.textTertiaryFor(context),
-                      ),
-                      keyboardType: TextInputType.phone,
-                      textInputAction: TextInputAction.next,
-                      onChanged: (_) {
-                        if (_errorMessage != null) {
-                          setState(() => _errorMessage = null);
-                        }
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return l10n.enterMobile;
-                        }
-                        if (value.length < 10) {
-                          return l10n.validMobile;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceFor(context),
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
+                            boxShadow: AppShadow.primary,
+                          ),
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          child: Column(
+                            children: [
+                              if (_errorMessage != null)
+                                _buildErrorBanner(_errorMessage!),
+                              if (_errorMessage != null)
+                                const SizedBox(height: AppSpacing.lg),
 
-                    AppTextField(
-                      controller: _passwordController,
-                      label: l10n.password,
-                      prefixIcon: Icon(
-                        Icons.lock_rounded,
-                        size: 20,
-                        color: AppColors.textTertiaryFor(context),
-                      ),
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _handleLogin(),
-                      onChanged: (_) {
-                        if (_errorMessage != null) {
-                          setState(() => _errorMessage = null);
-                        }
-                      },
-                      suffixIcon: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(
-                              () => _obscurePassword = !_obscurePassword);
-                        },
-                        child: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                          size: 20,
-                          color: AppColors.textTertiaryFor(context),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return l10n.enterPassword;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
+                              AppTextField(
+                                controller: _mobileController,
+                                label: l10n.mobileNumber,
+                                prefixIcon: Icon(
+                                  Icons.phone_rounded,
+                                  size: 20,
+                                  color: AppColors.textTertiaryFor(context),
+                                ),
+                                keyboardType: TextInputType.phone,
+                                textInputAction: TextInputAction.next,
+                                onChanged: (_) {
+                                  if (_errorMessage != null) {
+                                    setState(() => _errorMessage = null);
+                                  }
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return l10n.enterMobile;
+                                  }
+                                  if (value.length < 10) {
+                                    return l10n.validMobile;
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
 
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: GestureDetector(
-                        onTap: () => context.push('/forgot-password'),
-                        child: Text(
-                          l10n.forgotPassword,
-                          style: AppTextStyles.bodyMedium(context).copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
+                              AppTextField(
+                                controller: _passwordController,
+                                label: l10n.password,
+                                prefixIcon: Icon(
+                                  Icons.lock_rounded,
+                                  size: 20,
+                                  color: AppColors.textTertiaryFor(context),
+                                ),
+                                obscureText: _obscurePassword,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) => _handleLogin(),
+                                onChanged: (_) {
+                                  if (_errorMessage != null) {
+                                    setState(() => _errorMessage = null);
+                                  }
+                                },
+                                suffixIcon: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    );
+                                  },
+                                  child: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
+                                    size: 20,
+                                    color: AppColors.textTertiaryFor(context),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return l10n.enterPassword;
+                                  }
+                                  return null;
+                                },
+                              ),
+                              
+                              const SizedBox(height: AppSpacing.xxl),
+
+                              AppButton(
+                                text: l10n.login,
+                                isLoading: _isLoggingIn,
+                                isDisabled: _isLoggingIn,
+                                onPressed: _handleLogin,
+                              ),
+
+                              const SizedBox(height: AppSpacing.xl),
+
+                              Align(
+                                alignment: Alignment.center,
+                                child: InkWell(
+                                  onTap: () => context.push('/forgot-password'),
+                                  child: Text(
+                                    l10n.forgotPassword,
+                                    style: AppTextStyles.bodyMedium(context)
+                                        .copyWith(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
+
+                        const SizedBox(height: AppSpacing.xxxl),
+
+                        _buildRegisterLink(l10n),
+                      ],
                     ),
-                    const SizedBox(height: AppSpacing.xxxl),
-
-                    AppButton(
-                      text: l10n.login,
-                      isLoading: _isLoggingIn,
-                      isDisabled: _isLoggingIn,
-                      onPressed: _handleLogin,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    const SizedBox(height: AppSpacing.xxxxxl),
-
-                    _buildRegisterLink(l10n),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
 
             // ── Theme Toggle ───────────────────────
-            Positioned(
-              top: 8,
-              left: 8,
-              child: _buildThemeToggle(),
-            ),
-            // ── Language Toggle ───────────────────────
-            Positioned(
-              top: 8,
-              right: 8,
-              child: _buildLanguageToggle(),
-            ),
+            Positioned(bottom: 8, left: 16, child: Row(spacing: 8, children:[_buildThemeToggle(), _buildLanguageToggle()])),
           ],
         ),
       ),
@@ -233,63 +239,77 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget _buildHeader(AppLocalizations l10n) {
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            gradient: AppColors.gradientPrimary,
-            borderRadius: AppRadius.extraLarge,
-            boxShadow: AppShadow.primary,
-          ),
-          child: const Icon(
-            Icons.school_rounded,
-            size: 40,
-            color: AppColors.textOnPrimary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
+      
 
-        Text(
-          l10n.welcomeBack,
-          style: AppTextStyles.h1(context),
-        ),
+        Text(l10n.welcomeBack, style: AppTextStyles.h1(context)),
         const SizedBox(height: AppSpacing.sm),
 
         Text(
           l10n.signInToContinue,
-          style: AppTextStyles.bodyMedium(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.bodyMedium(context)
+              .copyWith(color: AppColors.textSecondary),
         ),
       ],
     );
   }
 
   Widget _buildRegisterLink(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          l10n.dontHaveAccount,
-          style: AppTextStyles.bodyMedium(context),
-        ),
-        const SizedBox(width: 6),
-        GestureDetector(
-          onTap: () => context.push('/register'),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Text(
-              l10n.register,
-              style: AppTextStyles.bodyMedium(context).copyWith(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceFor(context),
+        borderRadius: AppRadius.large,
+        boxShadow: AppShadow.primary,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.newStudentQuestion,
+                  style: AppTextStyles.bodySmall(context).copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l10n.joinNowPrompt,
+                  style: AppTextStyles.bodyMedium(context).copyWith(
+                    color: AppColors.textPrimaryFor(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          GestureDetector(
+            onTap: () => context.push('/register'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
                 color: AppColors.primary,
-                fontWeight: FontWeight.w700,
+                borderRadius: AppRadius.medium,
+              ),
+              child: Text(
+                l10n.register,
+                style: AppTextStyles.bodyMedium(context).copyWith(
+                  color: AppColors.textOnPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+
 
   Widget _buildLanguageToggle() {
     final isBn = Localizations.localeOf(context).languageCode == 'bn';
@@ -318,11 +338,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
             const SizedBox(width: 6),
             Text(
-              isBn ? 'EN' : 'বাং',
-              style: AppTextStyles.label(context).copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
+              isBn ? 'বাংলা' :'ENG' ,
+              style: AppTextStyles.label(
+                context,
+              ).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -336,7 +355,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       decoration: BoxDecoration(
         color: AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -345,10 +367,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           Expanded(
             child: Text(
               message,
-              style: AppTextStyles.bodySmall(context).copyWith(
-                color: AppColors.error,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppTextStyles.bodySmall(
+                context,
+              ).copyWith(color: AppColors.error, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -385,15 +406,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             const SizedBox(width: 6),
             Text(
               isDark ? 'Dark' : 'Light',
-              style: AppTextStyles.label(context).copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppTextStyles.label(
+                context,
+              ).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
           ],
         ),
       ),
     );
   }
-
 }

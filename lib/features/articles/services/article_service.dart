@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class Article {
@@ -35,19 +35,9 @@ class Article {
 }
 
 class ArticleService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   Future<List<Article>> getPublishedArticles() async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/articles'),
+      Uri.parse('${ApiClient.baseUrl}/articles'),
       headers: {'Content-Type': 'application/json'},
     );
 

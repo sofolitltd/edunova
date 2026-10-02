@@ -137,7 +137,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                         child: ListView.separated(
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal),
                           itemCount: _notes.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
                           itemBuilder: (context, index) => _buildNoteCard(_notes[index]),
                         ),
                       ),

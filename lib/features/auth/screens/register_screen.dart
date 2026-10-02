@@ -54,7 +54,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
 
     HapticFeedback.lightImpact();
-    ref.read(authProvider.notifier).register(
+    ref
+        .read(authProvider.notifier)
+        .register(
           fullName: _fullNameController.text.trim(),
           mobile: _mobileController.text.trim(),
           password: _passwordController.text,
@@ -68,14 +70,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final l10n = AppLocalizations.of(context);
 
     ref.listen<AuthState>(authProvider, (prev, next) {
-      if (next.status == AuthStatus.success && next.flow == AuthFlow.registerOtp) {
+      if (next.status == AuthStatus.success &&
+          next.flow == AuthFlow.registerOtp) {
         context.go('/otp-verify', extra: next.pendingMobile);
       } else if (next.status == AuthStatus.success) {
         context.go('/login');
       } else if (next.status == AuthStatus.error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(next.errorMessage ?? l10n.registrationFailed)),
+          SnackBar(content: Text(next.errorMessage ?? l10n.registrationFailed)),
         );
       }
     });
@@ -83,7 +85,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return AppScaffold(
       appBar: AppAppBar(
         title: l10n.createAccount,
-        trailing: _buildThemeToggle(),
         leading: GestureDetector(
           onTap: () => context.go('/login'),
           child: Container(
@@ -110,9 +111,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 horizontal: AppSpacing.screenHorizontal,
               ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -121,183 +120,206 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       const SizedBox(height: AppSpacing.lg),
 
                       _buildHeader(l10n),
-                      const SizedBox(height: AppSpacing.xxxl),
+                      const SizedBox(height: AppSpacing.xxl),
 
-                      AppTextField(
-                        controller: _fullNameController,
-                        label: l10n.fullName,
-                        prefixIcon: Icon(
-                          Icons.person_rounded,
-                          size: 20,
-                          color: AppColors.textTertiaryFor(context),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceFor(context),
+                          borderRadius: AppRadius.large,
+                          boxShadow: AppShadow.primary,
                         ),
-                        keyboardType: TextInputType.name,
-                        textInputAction: TextInputAction.next,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return l10n.enterFullName;
-                          }
-                          if (value.length < 3) {
-                            return l10n.nameMinLength;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
-                      AppTextField(
-                        controller: _mobileController,
-                        label: l10n.mobileNumber,
-                        prefixIcon: Icon(
-                          Icons.phone_rounded,
-                          size: 20,
-                          color: AppColors.textTertiaryFor(context),
-                        ),
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return l10n.enterMobile;
-                          }
-                          if (value.length < 10) {
-                            return l10n.validMobile;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
-                      AppTextField(
-                        controller: _passwordController,
-                        label: l10n.password,
-                        prefixIcon: Icon(
-                          Icons.lock_rounded,
-                          size: 20,
-                          color: AppColors.textTertiaryFor(context),
-                        ),
-                        obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _handleRegister(),
-                        suffixIcon: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() =>
-                                _obscurePassword = !_obscurePassword);
-                          },
-                          child: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_rounded
-                                : Icons.visibility_rounded,
-                            size: 20,
-                            color: AppColors.textTertiaryFor(context),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return l10n.enterPassword;
-                          }
-                          if (value.length < 6) {
-                            return l10n.passwordMinLength;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
-                      AppTextField(
-                        controller: _confirmPasswordController,
-                        label: l10n.confirmPassword,
-                        prefixIcon: Icon(
-                          Icons.lock_rounded,
-                          size: 20,
-                          color: AppColors.textTertiaryFor(context),
-                        ),
-                        obscureText: _obscureConfirmPassword,
-                        textInputAction: TextInputAction.next,
-                        suffixIcon: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() =>
-                                _obscureConfirmPassword = !_obscureConfirmPassword);
-                          },
-                          child: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_off_rounded
-                                : Icons.visibility_rounded,
-                            size: 20,
-                            color: AppColors.textTertiaryFor(context),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return l10n.confirmPasswordMsg;
-                          }
-                          if (value != _passwordController.text) {
-                            return l10n.passwordsDontMatch;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.xxxl),
-
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          l10n.classLevel,
-                          style: AppTextStyles.label(context)
-                              .copyWith(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: _classes.map((c) {
-                          final isSelected = _studentClass == c;
-                          return GestureDetector(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() => _studentClass = c);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary.withValues(alpha: 0.1)
-                                    : AppColors.surfaceFor(context),
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.full),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.borderFor(context),
-                                  width: isSelected ? 1.5 : 1.0,
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          children: [
+                            AppTextField(
+                              controller: _fullNameController,
+                              label: l10n.fullName,
+                              prefixIcon: Icon(
+                                Icons.person_rounded,
+                                size: 20,
+                                color: AppColors.textTertiaryFor(context),
+                              ),
+                              keyboardType: TextInputType.name,
+                              textInputAction: TextInputAction.next,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return l10n.enterFullName;
+                                }
+                                if (value.length < 3) {
+                                  return l10n.nameMinLength;
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                        
+                            AppTextField(
+                              controller: _mobileController,
+                              label: l10n.mobileNumber,
+                              prefixIcon: Icon(
+                                Icons.phone_rounded,
+                                size: 20,
+                                color: AppColors.textTertiaryFor(context),
+                              ),
+                              keyboardType: TextInputType.phone,
+                              textInputAction: TextInputAction.next,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return l10n.enterMobile;
+                                }
+                                if (value.length < 10) {
+                                  return l10n.validMobile;
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                        
+                            AppTextField(
+                              controller: _passwordController,
+                              label: l10n.password,
+                              prefixIcon: Icon(
+                                Icons.lock_rounded,
+                                size: 20,
+                                color: AppColors.textTertiaryFor(context),
+                              ),
+                              obscureText: _obscurePassword,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _handleRegister(),
+                              suffixIcon: GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  );
+                                },
+                                child: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_rounded
+                                      : Icons.visibility_rounded,
+                                  size: 20,
+                                  color: AppColors.textTertiaryFor(context),
                                 ),
                               ),
-                              child: Text(
-                                c,
-                                style: AppTextStyles.label(context).copyWith(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.textSecondaryFor(context),
-                                  fontWeight: isSelected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return l10n.enterPassword;
+                                }
+                                if (value.length < 6) {
+                                  return l10n.passwordMinLength;
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                        
+                            AppTextField(
+                              controller: _confirmPasswordController,
+                              label: l10n.confirmPassword,
+                              prefixIcon: Icon(
+                                Icons.lock_rounded,
+                                size: 20,
+                                color: AppColors.textTertiaryFor(context),
+                              ),
+                              obscureText: _obscureConfirmPassword,
+                              textInputAction: TextInputAction.next,
+                              suffixIcon: GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(
+                                    () => _obscureConfirmPassword =
+                                        !_obscureConfirmPassword,
+                                  );
+                                },
+                                child: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off_rounded
+                                      : Icons.visibility_rounded,
+                                  size: 20,
+                                  color: AppColors.textTertiaryFor(context),
                                 ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return l10n.confirmPasswordMsg;
+                                }
+                                if (value != _passwordController.text) {
+                                  return l10n.passwordsDontMatch;
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.xxxl),
+                        
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.classLevel,
+                                style: AppTextStyles.label(context)
+                                    .copyWith(fontWeight: FontWeight.w600),
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: AppSpacing.xxxl),
-
-                      AppButton(
-                        text: l10n.createAccount,
-                        isLoading: authState.status == AuthStatus.loading,
-                        isDisabled: authState.status == AuthStatus.loading,
-                        onPressed: _handleRegister,
+                            const SizedBox(height: AppSpacing.sm),
+                            Wrap(
+                              spacing: AppSpacing.sm,
+                              runSpacing: AppSpacing.sm,
+                              children: _classes.map((c) {
+                                final isSelected = _studentClass == c;
+                                return GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    setState(() => _studentClass = c);
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppColors.primary.withValues(
+                                              alpha: 0.1,
+                                            )
+                                          : AppColors.surfaceFor(context),
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.full,
+                                      ),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : AppColors.borderFor(context),
+                                        width: isSelected ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      c,
+                                      style: AppTextStyles.label(context)
+                                          .copyWith(
+                                            color: isSelected
+                                                ? AppColors.primary
+                                                : AppColors.textSecondaryFor(
+                                                    context,
+                                                  ),
+                                            fontWeight: isSelected
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                          ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: AppSpacing.xxxl),
+                        
+                            AppButton(
+                              text: l10n.createAccount,
+                              isLoading: authState.status == AuthStatus.loading,
+                              isDisabled: authState.status == AuthStatus.loading,
+                              onPressed: _handleRegister,
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xxxxxl),
 
@@ -317,37 +339,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Widget _buildHeader(AppLocalizations l10n) {
-    return Column(
+    return Row(
       children: [
-        Row(
-          children: [
-            _buildStepDot(1, true),
-            _buildStepLine(true),
-            _buildStepDot(2, false),
-            _buildStepLine(false),
-            _buildStepDot(3, false),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xxxl),
-
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            l10n.joinEduNova,
-            style: AppTextStyles.h1(context),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            l10n.createAccountToStart,
-            style: AppTextStyles.bodyMedium(context).copyWith(
-              color: AppColors.textSecondaryFor(context),
-            ),
-          ),
-        ),
+        _buildStepDot(1, true),
+        _buildStepLine(true),
+        _buildStepDot(2, false),
+        _buildStepLine(false),
+        _buildStepDot(3, false),
       ],
     );
   }
@@ -365,7 +363,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         child: Text(
           '$step',
           style: AppTextStyles.label(context).copyWith(
-            color: isActive ? AppColors.textOnPrimary : AppColors.textTertiaryFor(context),
+            color: isActive
+                ? AppColors.textOnPrimary
+                : AppColors.textTertiaryFor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -394,20 +394,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         children: [
           TextSpan(
             text: l10n.termsOfService,
-            style: AppTextStyles.bodySmall(context).copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-            recognizer: TapGestureRecognizer()..onTap = () => context.push('/terms'),
+            style: AppTextStyles.bodySmall(
+              context,
+            ).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => context.push('/terms'),
           ),
           TextSpan(text: l10n.and),
           TextSpan(
             text: l10n.privacyPolicy,
-            style: AppTextStyles.bodySmall(context).copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-            recognizer: TapGestureRecognizer()..onTap = () => context.push('/privacy'),
+            style: AppTextStyles.bodySmall(
+              context,
+            ).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => context.push('/privacy'),
           ),
         ],
       ),
@@ -419,18 +419,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          l10n.alreadyHaveAccount,
-          style: AppTextStyles.bodyMedium(context),
-        ),
+        Text(l10n.alreadyHaveAccount, style: AppTextStyles.bodyMedium(context)),
         GestureDetector(
           onTap: () => context.go('/login'),
           child: Text(
             l10n.login,
-            style: AppTextStyles.bodyMedium(context).copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppTextStyles.bodyMedium(
+              context,
+            ).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -466,10 +462,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             const SizedBox(width: 6),
             Text(
               isDark ? 'Dark' : 'Light',
-              style: AppTextStyles.label(context).copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppTextStyles.label(
+                context,
+              ).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
           ],
         ),

@@ -4,11 +4,27 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
+  static const String _prodUrl = 'https://edunova-server.vercel.app/api';
+
+  /// Override at build/run time with:
+  /// flutter run --dart-define=API_BASE_URL=http://192.168.1.50:8080/api
+  static const String _overrideUrl = String.fromEnvironment('API_BASE_URL');
+
   static String get baseUrl {
+    if (_overrideUrl.isNotEmpty) {
+      return _overrideUrl;
+    }
+
+    // Release builds (web, Android, iOS) always talk to the deployed server —
+    // "localhost"/"10.0.2.2" only resolve on a dev machine or emulator, so a
+    // release build using them can never reach the backend from a real device
+    // or over mobile data.
+    if (kReleaseMode) {
+      return _prodUrl;
+    }
+
     if (kIsWeb) {
-      return kReleaseMode
-          ? 'https://edunova-server.vercel.app/api'
-          : 'http://localhost:8080/api';
+      return 'http://localhost:8080/api';
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:

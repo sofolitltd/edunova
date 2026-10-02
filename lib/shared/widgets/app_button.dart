@@ -15,7 +15,7 @@ class AppButton extends StatefulWidget {
     this.isDisabled = false,
     this.icon,
     this.width,
-    this.height = 54,
+    this.height = 48,
   });
 
   final String text;
@@ -117,18 +117,18 @@ class _AppButtonState extends State<AppButton>
           color: _isEnabled
               ? (_isPressed ? AppColors.primaryDark : AppColors.primary)
               : borderColor,
-          borderRadius: AppRadius.large,
+          borderRadius: AppRadius.medium,
           boxShadow: _isEnabled && !_isPressed ? AppShadow.primary : [],
         );
       case AppButtonVariant.secondary:
         return BoxDecoration(
           color: surfaceColor,
-          borderRadius: AppRadius.large,
+          borderRadius: AppRadius.medium,
         );
       case AppButtonVariant.outline:
         return BoxDecoration(
           color: _isPressed ? surfaceColor : Colors.transparent,
-          borderRadius: AppRadius.large,
+          borderRadius: AppRadius.medium,
           border: Border.all(
             color: _isEnabled ? AppColors.primary : borderColor,
             width: 1.5,
@@ -137,7 +137,7 @@ class _AppButtonState extends State<AppButton>
       case AppButtonVariant.ghost:
         return BoxDecoration(
           color: _isPressed ? surfaceColor : Colors.transparent,
-          borderRadius: AppRadius.large,
+          borderRadius: AppRadius.medium,
         );
     }
   }

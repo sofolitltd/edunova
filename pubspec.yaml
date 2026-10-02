@@ -50,6 +50,7 @@ dependencies:
   flip_card: ^0.7.0
   pdf: ^3.13.0
   printing: ^5.15.0
+  hugeicons: ^1.2.0
 
 
 dev_dependencies:

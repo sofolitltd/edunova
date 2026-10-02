@@ -121,7 +121,25 @@ class NotificationService {
     await unsubscribeFromTopic('batch_$batchId');
   }
 
+  /// Backfills topic subscriptions for every batch the user is enrolled in,
+  /// so batch-targeted admin notifications reach devices that enrolled
+  /// before this subscription existed, or that never re-ran enrollment.
+  Future<void> syncBatchSubscriptions(Iterable<int?> batchIds) async {
+    for (final batchId in batchIds) {
+      if (batchId != null) {
+        await subscribeToBatch(batchId);
+      }
+    }
+  }
+
+  /// Bumped every time a push arrives while the app is in the foreground, so
+  /// any open screen showing notifications/enrollments can listen and
+  /// refresh itself instead of waiting for a manual pull-to-refresh.
+  static final ValueNotifier<int> refreshSignal = ValueNotifier<int>(0);
+
   void _handleForegroundMessage(RemoteMessage message) {
+    refreshSignal.value++;
+
     final notification = message.notification;
     if (notification == null) return;
     if (kIsWeb) return;
@@ -191,6 +209,9 @@ class NotificationService {
         break;
       case 'doubt':
         context.push('/home');
+        break;
+      case 'enrollment':
+        context.push('/notifications');
         break;
     }
   }

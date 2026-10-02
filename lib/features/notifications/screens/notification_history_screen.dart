@@ -6,9 +6,20 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_spacing.dart';
 import '../../../shared/constants/app_text_styles.dart';
 import '../../../shared/widgets/app_app_bar.dart';
+import '../../../shared/widgets/app_filter_chip.dart';
 import '../../../shared/widgets/app_scaffold.dart';
+import '../../../shared/widgets/app_search_bar.dart';
+import '../../../shared/services/notification_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../services/notification_history_service.dart';
+
+const _categoryFilters = [
+  {'value': 'all', 'label': 'সব'},
+  {'value': 'urgent', 'label': 'জরুরি'},
+  {'value': 'exam', 'label': 'পরীক্ষা'},
+  {'value': 'class', 'label': 'ক্লাস'},
+  {'value': 'vacation', 'label': 'ছুটি'},
+];
 
 class NotificationHistoryScreen extends ConsumerStatefulWidget {
   const NotificationHistoryScreen({super.key});
@@ -21,15 +32,50 @@ class NotificationHistoryScreen extends ConsumerStatefulWidget {
 class _NotificationHistoryScreenState
     extends ConsumerState<NotificationHistoryScreen> {
   final NotificationHistoryService _service = NotificationHistoryService();
+  final TextEditingController _searchController = TextEditingController();
   List<AppNotification> _notifications = [];
   bool _isLoading = true;
   String? _error;
   int _page = 1;
   bool _hasMore = true;
+  String _searchQuery = '';
+  String _selectedCategory = 'all';
+
+  List<AppNotification> get _filteredNotifications {
+    var list = _notifications;
+    if (_selectedCategory != 'all') {
+      list = list.where((n) => n.category == _selectedCategory).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list
+          .where((n) =>
+              n.title.toLowerCase().contains(q) ||
+              n.body.toLowerCase().contains(q))
+          .toList();
+    }
+    return list;
+  }
+
+  bool get _isFiltering =>
+      _searchQuery.isNotEmpty || _selectedCategory != 'all';
 
   @override
   void initState() {
     super.initState();
+    _loadNotifications();
+    NotificationService.refreshSignal.addListener(_onPushReceived);
+  }
+
+  @override
+  void dispose() {
+    NotificationService.refreshSignal.removeListener(_onPushReceived);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onPushReceived() {
+    _page = 1;
     _loadNotifications();
   }
 
@@ -112,29 +158,7 @@ class _NotificationHistoryScreenState
 
   void _handleTap(AppNotification notif) {
     if (!notif.readByMe) _markAsRead(notif.id);
-
-    if (notif.linkType.isEmpty) return;
-
-    switch (notif.linkType) {
-      case 'exam':
-        context.push('/exam-detail', extra: {'id': notif.linkId});
-        break;
-      case 'course':
-        context.push('/class-detail', extra: {'id': notif.linkId});
-        break;
-      case 'article':
-        context.push('/articles');
-        break;
-      case 'lesson':
-        context.push('/home');
-        break;
-      case 'calendar':
-        context.push('/home');
-        break;
-      case 'doubt':
-        context.push('/home');
-        break;
-    }
+    context.push('/notification-detail', extra: notif);
   }
 
   String _formatDate(String isoDate) {
@@ -149,44 +173,6 @@ class _NotificationHistoryScreenState
       return '${dt.day}/${dt.month}/${dt.year}';
     } catch (_) {
       return isoDate;
-    }
-  }
-
-  IconData _getIcon(String linkType) {
-    switch (linkType) {
-      case 'exam':
-        return Icons.quiz_rounded;
-      case 'course':
-        return Icons.school_rounded;
-      case 'article':
-        return Icons.article_rounded;
-      case 'lesson':
-        return Icons.menu_book_rounded;
-      case 'calendar':
-        return Icons.calendar_today_rounded;
-      case 'doubt':
-        return Icons.help_outline_rounded;
-      default:
-        return Icons.notifications_rounded;
-    }
-  }
-
-  Color _getIconColor(String linkType) {
-    switch (linkType) {
-      case 'exam':
-        return Colors.orange;
-      case 'course':
-        return AppColors.primary;
-      case 'article':
-        return Colors.teal;
-      case 'lesson':
-        return Colors.blue;
-      case 'calendar':
-        return Colors.purple;
-      case 'doubt':
-        return Colors.red;
-      default:
-        return AppColors.primary;
     }
   }
 
@@ -215,6 +201,49 @@ class _NotificationHistoryScreenState
   }
 
   Widget _buildBody() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenHorizontal,
+            AppSpacing.sm,
+            AppSpacing.screenHorizontal,
+            0,
+          ),
+          child: AppSearchBar(
+            controller: _searchController,
+            hintText: 'নোটিফিকেশন খুঁজুন...',
+            onChanged: (v) => setState(() => _searchQuery = v),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenHorizontal,
+            ),
+            itemCount: _categoryFilters.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final cat = _categoryFilters[i];
+              return AppFilterChip(
+                label: cat['label']!,
+                isSelected: _selectedCategory == cat['value'],
+                onTap: () =>
+                    setState(() => _selectedCategory = cat['value']!),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Expanded(child: _buildList()),
+      ],
+    );
+  }
+
+  Widget _buildList() {
     if (_isLoading && _notifications.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -251,9 +280,28 @@ class _NotificationHistoryScreenState
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.notifications_off_rounded,
-                size: 64, color: AppColors.textSecondary.withOpacity(0.4)),
+                size: 64, color: AppColors.textSecondary.withValues(alpha: 0.4)),
             const SizedBox(height: AppSpacing.md),
             Text('কোনো নোটিফিকেশন নেই',
+                style: AppTextStyles.bodyLarge(context).copyWith(
+                  color: AppColors.textSecondary,
+                )),
+          ],
+        ),
+      );
+    }
+
+    final filtered = _filteredNotifications;
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 64, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+            const SizedBox(height: AppSpacing.md),
+            Text('কোনো ফলাফল পাওয়া যায়নি',
                 style: AppTextStyles.bodyLarge(context).copyWith(
                   color: AppColors.textSecondary,
                 )),
@@ -272,9 +320,9 @@ class _NotificationHistoryScreenState
           horizontal: AppSpacing.screenHorizontal,
           vertical: AppSpacing.sm,
         ),
-        itemCount: _notifications.length + (_hasMore ? 1 : 0),
+        itemCount: filtered.length + (_hasMore && !_isFiltering ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index == _notifications.length) {
+          if (index == filtered.length) {
             _loadMore();
             return const Center(
               child: Padding(
@@ -283,7 +331,7 @@ class _NotificationHistoryScreenState
               ),
             );
           }
-          return _buildNotificationTile(_notifications[index]);
+          return _buildNotificationTile(filtered[index]);
         },
       ),
     );
@@ -298,12 +346,12 @@ class _NotificationHistoryScreenState
       decoration: BoxDecoration(
         color: isRead
             ? Theme.of(context).cardColor
-            : AppColors.primary.withOpacity(0.05),
+            : AppColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isRead
-              ? Theme.of(context).dividerColor.withOpacity(0.1)
-              : AppColors.primary.withOpacity(0.2),
+              ? Theme.of(context).dividerColor.withValues(alpha: 0.1)
+              : AppColors.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Material(
@@ -311,7 +359,7 @@ class _NotificationHistoryScreenState
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: hasLink ? () => _handleTap(notif) : null,
+          onTap: () => _handleTap(notif),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -321,12 +369,12 @@ class _NotificationHistoryScreenState
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: _getIconColor(notif.linkType).withOpacity(0.1),
+                    color: notif.iconColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    _getIcon(notif.linkType),
-                    color: _getIconColor(notif.linkType),
+                    notif.icon,
+                    color: notif.iconColor,
                     size: 20,
                   ),
                 ),
@@ -376,7 +424,7 @@ class _NotificationHistoryScreenState
                           Text(
                             _formatDate(notif.sentAt),
                             style: AppTextStyles.bodySmall(context).copyWith(
-                              color: AppColors.textSecondary.withOpacity(0.6),
+                              color: AppColors.textSecondary.withValues(alpha: 0.6),
                               fontSize: 11,
                             ),
                           ),
@@ -385,7 +433,7 @@ class _NotificationHistoryScreenState
                             Icon(
                               Icons.chevron_right_rounded,
                               size: 14,
-                              color: AppColors.primary.withOpacity(0.5),
+                              color: AppColors.primary.withValues(alpha: 0.5),
                             ),
                           ],
                         ],

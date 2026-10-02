@@ -163,33 +163,22 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
                     const SizedBox(height: AppSpacing.xl),
 
                     // ── Tab Bar ─────────────────────────────
-                    Container(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screenHorizontal,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceFor(context),
-                        borderRadius: AppRadius.medium,
-                        border: Border.all(color: AppColors.borderFor(context)),
-                      ),
+                    Material(
+                      color: AppColors.surfaceFor(context),
                       child: TabBar(
                         controller: _tabController,
-                        indicator: BoxDecoration(
-                          color: widget.color.withValues(alpha: 0.1),
-                          borderRadius: AppRadius.medium,
-                        ),
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        dividerColor: Colors.transparent,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        indicatorColor: widget.color,
                         labelColor: widget.color,
                         unselectedLabelColor: AppColors.textTertiaryFor(context),
                         labelStyle: AppTextStyles.label(context).copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                         unselectedLabelStyle: AppTextStyles.label(context).copyWith(
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
-                        labelPadding: EdgeInsets.zero,
                         tabs: [
                           Tab(text: l10n.aboutClass),
                           Tab(text: l10n.weeklySchedule),
@@ -259,52 +248,37 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: AppRadius.medium,
-                ),
-                child: const Icon(
-                  Icons.school_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      batch.name,
-                      style: AppTextStyles.h2(context).copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      batch.courseName,
-                      style: AppTextStyles.bodyLarge(context).copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: AppRadius.medium,
+            ),
+            child: const Icon(
+              Icons.school_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            batch.name,
+            style: AppTextStyles.h2(context).copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.15)),
+          const SizedBox(height: AppSpacing.lg),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              _buildHeaderStat(
+              _buildHeaderChip(
                 context,
                 icon: Icons.schedule_rounded,
                 value: batch.schedule.isNotEmpty ? batch.schedule : '-',
               ),
-              const SizedBox(width: AppSpacing.lg),
-              _buildHeaderStat(
+              _buildHeaderChip(
                 context,
                 icon: Icons.people_rounded,
                 value: '${batch.studentCount} ${l10n.students}',
@@ -316,21 +290,30 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
     );
   }
 
-  Widget _buildHeaderStat(BuildContext context, {
+  Widget _buildHeaderChip(BuildContext context, {
     required IconData icon,
     required String value,
   }) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.7)),
-        const SizedBox(width: 6),
-        Text(
-          value,
-          style: AppTextStyles.bodySmall(context).copyWith(
-            color: Colors.white.withValues(alpha: 0.8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.85)),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: AppTextStyles.bodySmall(context).copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -357,12 +340,23 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
             ),
             const SizedBox(height: AppSpacing.xl),
           ],
-          _infoRow(context, Icons.school_rounded, 'ক্লাস', batch.classLevel.isNotEmpty ? 'Class ${batch.classLevel}' : '-'),
-          _infoRow(context, Icons.category_rounded, 'ধরন', batch.type.isNotEmpty ? batch.type : '-'),
-          _infoRow(context, Icons.wb_sunny_rounded, 'শিফট', batch.shift.isNotEmpty ? batch.shift : '-'),
-          _infoRow(context, Icons.people_rounded, 'মোট শিক্ষার্থী', '${batch.studentCount}'),
+          _infoRow(context, Icons.school_rounded, 'ক্লাস',
+              text: batch.classLevel.isNotEmpty ? 'Class ${batch.classLevel}' : '-'),
+          _infoRow(context, Icons.category_rounded, 'ধরন',
+              trailing: batch.type.isNotEmpty ? _typePill(context, batch.type) : const Text('-')),
+          _infoRow(context, Icons.wb_sunny_rounded, 'শিফট',
+              text: batch.shift.isNotEmpty ? batch.shift : '-'),
+          _infoRow(context, Icons.people_rounded, 'মোট শিক্ষার্থী',
+              trailing: _countBadge(context, '${batch.studentCount}')),
           const SizedBox(height: AppSpacing.xl),
-          Text('শিক্ষক', style: AppTextStyles.h3(context)),
+          Row(
+            children: [
+              Text('শিক্ষক', style: AppTextStyles.h3(context)),
+              const SizedBox(width: AppSpacing.sm),
+              if (batch.teachers.isNotEmpty)
+                _countBadge(context, '${batch.teachers.length} জন'),
+            ],
+          ),
           const SizedBox(height: AppSpacing.md),
           if (batch.teachers.isEmpty)
             Text('এখনো কোনো শিক্ষক নিয়োগ করা হয়নি', style: AppTextStyles.bodySmall(context))
@@ -400,7 +394,7 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
     );
   }
 
-  Widget _infoRow(BuildContext context, IconData icon, String label, String value) {
+  Widget _infoRow(BuildContext context, IconData icon, String label, {String? text, Widget? trailing}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
@@ -409,8 +403,43 @@ class _ClassDetailScreenState extends ConsumerState<ClassDetailScreen>
           const SizedBox(width: AppSpacing.sm),
           Text(label, style: AppTextStyles.bodySmall(context)),
           const Spacer(),
-          Text(value, style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600)),
+          trailing ??
+              Text(text ?? '-', style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+
+  Widget _typePill(BuildContext context, String type) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Text(
+        type,
+        style: AppTextStyles.bodySmall(context).copyWith(
+          color: AppColors.success,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _countBadge(BuildContext context, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: widget.color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Text(
+        value,
+        style: AppTextStyles.bodySmall(context).copyWith(
+          color: widget.color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

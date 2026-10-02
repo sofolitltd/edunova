@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class BatchTeacher {
@@ -192,26 +192,85 @@ class BatchMyResult {
   }
 }
 
-class BatchService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
+class SuggestedBatch {
+  final int id;
+  final String name;
+  final String classLevel;
+  final List<String> days;
+  final String startTime;
+  final String endTime;
+  final String schedule;
+  final String shift;
+  final String type;
+  final int admissionFee;
+  final int noteFee;
+  final int monthlyFee;
+  final int courseId;
+  final String courseName;
+  final int maxStudents;
 
+  SuggestedBatch({
+    required this.id,
+    required this.name,
+    required this.classLevel,
+    required this.days,
+    required this.startTime,
+    required this.endTime,
+    required this.schedule,
+    required this.shift,
+    required this.type,
+    required this.admissionFee,
+    required this.noteFee,
+    required this.monthlyFee,
+    required this.courseId,
+    required this.courseName,
+    required this.maxStudents,
+  });
+
+  factory SuggestedBatch.fromJson(Map<String, dynamic> json) {
+    return SuggestedBatch(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      classLevel: json['class_level'] ?? '',
+      days: ((json['days'] as List?) ?? []).map((d) => d.toString()).toList(),
+      startTime: json['start_time'] ?? '',
+      endTime: json['end_time'] ?? '',
+      schedule: json['schedule'] ?? '',
+      shift: json['shift'] ?? '',
+      type: json['type'] ?? '',
+      admissionFee: json['admission_fee'] ?? 0,
+      noteFee: json['note_fee'] ?? 0,
+      monthlyFee: json['monthly_fee'] ?? 0,
+      courseId: json['course_id'] ?? 0,
+      courseName: json['course_name'] ?? '',
+      maxStudents: json['max_students'] ?? 0,
+    );
+  }
+}
+
+class BatchService {
   Map<String, String> _headers(String? token) {
     final h = <String, String>{'Content-Type': 'application/json'};
     if (token != null) h['Authorization'] = 'Bearer $token';
     return h;
   }
 
+  Future<List<SuggestedBatch>> getSuggestedBatches(String? token) async {
+    if (token == null) return [];
+    final response = await http.get(
+      Uri.parse('${ApiClient.baseUrl}/batches/suggested'),
+      headers: _headers(token),
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as List;
+      return data.map((e) => SuggestedBatch.fromJson(e)).toList();
+    }
+    return [];
+  }
+
   Future<BatchDetail?> getBatchDetail(String? token, int batchId) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/batches/$batchId'),
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -222,7 +281,7 @@ class BatchService {
 
   Future<List<BatchSubjectSchedule>> getBatchSubjects(String? token, int batchId) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/batches/$batchId/subjects'),
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/subjects'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -234,7 +293,7 @@ class BatchService {
 
   Future<List<BatchExam>> getBatchExams(String? token, int batchId) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/batches/$batchId/exams'),
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/exams'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -246,7 +305,7 @@ class BatchService {
 
   Future<List<LeaderboardEntry>> getBatchLeaderboard(String? token, int batchId) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/batches/$batchId/leaderboard'),
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/leaderboard'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -258,7 +317,7 @@ class BatchService {
 
   Future<List<BatchMyResult>> getBatchMyResults(String? token, int batchId) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/batches/$batchId/my-results'),
+      Uri.parse('${ApiClient.baseUrl}/batches/$batchId/my-results'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {

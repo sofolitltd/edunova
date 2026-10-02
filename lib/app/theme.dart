@@ -5,8 +5,8 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get light => ThemeData(
-        useMaterial3: false,
-        fontFamily: GoogleFonts.googleSans().fontFamily,
+        useMaterial3: true,
+        fontFamily: GoogleFonts.anekBangla().fontFamily,
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         colorScheme: const ColorScheme.light(
           primary: Color(0xFF6366F1),
@@ -21,11 +21,13 @@ class AppTheme {
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
+        elevatedButtonTheme: _elevatedButtonTheme,
+        inputDecorationTheme: _inputDecorationTheme,
       );
 
   static ThemeData get dark => ThemeData(
-        useMaterial3: false,
-        fontFamily: GoogleFonts.googleSans().fontFamily,
+        useMaterial3: true,
+        fontFamily: GoogleFonts.anekBangla().fontFamily,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
         colorScheme: const ColorScheme.dark(
@@ -41,5 +43,23 @@ class AppTheme {
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
+        elevatedButtonTheme: _elevatedButtonTheme,
+        inputDecorationTheme: _inputDecorationTheme,
       );
+
+  static final _elevatedButtonTheme = ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      minimumSize: const Size(64, 48),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+  );
+
+  static final _inputDecorationTheme = InputDecorationTheme(
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+  );
 }

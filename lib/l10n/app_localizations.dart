@@ -134,16 +134,10 @@ abstract class AppLocalizations {
   /// **'Sign in to your account'**
   String get signInToContinue;
 
-  /// No description provided for @joinEduNova.
-  ///
-  /// In en, this message translates to:
-  /// **'Join EduNova'**
-  String get joinEduNova;
-
   /// No description provided for @createAccountToStart.
   ///
   /// In en, this message translates to:
-  /// **'Create your account to start learning'**
+  /// **'Create your account'**
   String get createAccountToStart;
 
   /// No description provided for @mobileNumber.
@@ -175,6 +169,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Forgot Password?'**
   String get forgotPassword;
+
+  /// No description provided for @newStudentQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'New student?'**
+  String get newStudentQuestion;
+
+  /// No description provided for @joinNowPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? Join now'**
+  String get joinNowPrompt;
 
   /// No description provided for @dontHaveAccount.
   ///
@@ -302,6 +308,144 @@ abstract class AppLocalizations {
   /// **'Enter your mobile number to receive a verification code'**
   String get resetPasswordSubtitle;
 
+  /// No description provided for @secureRecoveryBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure Recovery'**
+  String get secureRecoveryBadge;
+
+  /// No description provided for @forgotPasswordHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get forgotPasswordHeroTitle;
+
+  /// No description provided for @forgotPasswordHeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No worries! Enter your registered mobile number or email and we\'ll send you a verification code (OTP) instantly.'**
+  String get forgotPasswordHeroSubtitle;
+
+  /// No description provided for @encryptedRecoveryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'100% automated & encrypted recovery process'**
+  String get encryptedRecoveryNote;
+
+  /// No description provided for @recoveryMethodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a recovery method'**
+  String get recoveryMethodLabel;
+
+  /// No description provided for @mobileMethodTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile Number'**
+  String get mobileMethodTab;
+
+  /// No description provided for @emailMethodTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address'**
+  String get emailMethodTab;
+
+  /// No description provided for @smsOtpBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS OTP'**
+  String get smsOtpBadge;
+
+  /// No description provided for @emailOtpBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Email OTP'**
+  String get emailOtpBadge;
+
+  /// No description provided for @registeredMobileNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered Mobile Number'**
+  String get registeredMobileNumber;
+
+  /// No description provided for @registeredEmailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered Email Address'**
+  String get registeredEmailAddress;
+
+  /// No description provided for @smsOtpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A 4-digit OTP code will be sent via SMS. Valid for 5 minutes.'**
+  String get smsOtpHint;
+
+  /// No description provided for @emailOtpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your inbox or spam folder for the reset code.'**
+  String get emailOtpHint;
+
+  /// No description provided for @enterEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email address'**
+  String get enterEmail;
+
+  /// No description provided for @validEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email address'**
+  String get validEmail;
+
+  /// No description provided for @needHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Need help or account support?'**
+  String get needHelpTitle;
+
+  /// No description provided for @supportHours.
+  ///
+  /// In en, this message translates to:
+  /// **'9 AM - 10 PM'**
+  String get supportHours;
+
+  /// No description provided for @hotlineCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotline Call'**
+  String get hotlineCall;
+
+  /// No description provided for @liveChatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Live Chat'**
+  String get liveChatLabel;
+
+  /// No description provided for @whatsappLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get whatsappLabel;
+
+  /// No description provided for @helpDeskShortcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Helpdesk Shortcode'**
+  String get helpDeskShortcode;
+
+  /// No description provided for @viewFaqGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'View FAQ Guide'**
+  String get viewFaqGuide;
+
+  /// No description provided for @rememberedPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Remembered your password?'**
+  String get rememberedPassword;
+
   /// No description provided for @sendOtp.
   ///
   /// In en, this message translates to:
@@ -323,7 +467,7 @@ abstract class AppLocalizations {
   /// No description provided for @enterOtp.
   ///
   /// In en, this message translates to:
-  /// **'Enter 6-digit code'**
+  /// **'Enter 4-digit code'**
   String get enterOtp;
 
   /// No description provided for @invalidOtp.
@@ -367,6 +511,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'s'**
   String get seconds;
+
+  /// No description provided for @otpStepBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 2/3 • Security verification'**
+  String get otpStepBadge;
+
+  /// No description provided for @otpStepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter verification code'**
+  String get otpStepTitle;
+
+  /// No description provided for @otpDigitsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 4-digit code'**
+  String get otpDigitsLabel;
+
+  /// No description provided for @otpPendingBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get otpPendingBadge;
+
+  /// No description provided for @changeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Change number'**
+  String get changeNumber;
+
+  /// No description provided for @pasteCodeFromSms.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste code from SMS'**
+  String get pasteCodeFromSms;
+
+  /// No description provided for @getCodeByVoiceCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Get code via voice call'**
+  String get getCodeByVoiceCall;
+
+  /// No description provided for @otpSecurityNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t share your OTP with anyone'**
+  String get otpSecurityNote;
+
+  /// No description provided for @otpTroubleQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Having trouble receiving the code?'**
+  String get otpTroubleQuestion;
+
+  /// No description provided for @getHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Help'**
+  String get getHelp;
 
   /// No description provided for @resetPasswordSuccess.
   ///
@@ -415,6 +619,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to Login'**
   String get backToLogin;
+
+  /// No description provided for @otpVerifiedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'OTP Verified ✓'**
+  String get otpVerifiedBadge;
+
+  /// No description provided for @createPasswordHeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a strong, secure password to protect your account.'**
+  String get createPasswordHeroSubtitle;
+
+  /// No description provided for @passwordStrengthWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak'**
+  String get passwordStrengthWeak;
+
+  /// No description provided for @passwordStrengthGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good strength'**
+  String get passwordStrengthGood;
+
+  /// No description provided for @passwordStrengthStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Very strong'**
+  String get passwordStrengthStrong;
+
+  /// No description provided for @securityRequirementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security requirements'**
+  String get securityRequirementsTitle;
+
+  /// No description provided for @reqPasswordLength.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 6 characters or a 4-6 digit PIN'**
+  String get reqPasswordLength;
+
+  /// No description provided for @reqPasswordSpecial.
+  ///
+  /// In en, this message translates to:
+  /// **'At least one number and a special symbol (@, #, \$, &)'**
+  String get reqPasswordSpecial;
+
+  /// No description provided for @reqPasswordCase.
+  ///
+  /// In en, this message translates to:
+  /// **'A mix of uppercase and lowercase letters (A-Z and a-z)'**
+  String get reqPasswordCase;
+
+  /// No description provided for @logoutAllDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out from all devices'**
+  String get logoutAllDevicesTitle;
+
+  /// No description provided for @logoutAllDevicesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Immediately end sessions on other phones or browsers for safety.'**
+  String get logoutAllDevicesSubtitle;
+
+  /// No description provided for @cancelBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel and return to login'**
+  String get cancelBackToLogin;
 
   /// No description provided for @verifyAccount.
   ///
@@ -851,13 +1127,13 @@ abstract class AppLocalizations {
   /// No description provided for @male.
   ///
   /// In en, this message translates to:
-  /// **'Male'**
+  /// **'Boy'**
   String get male;
 
   /// No description provided for @female.
   ///
   /// In en, this message translates to:
-  /// **'Female'**
+  /// **'Girl'**
   String get female;
 
   /// No description provided for @religion.
@@ -1045,6 +1321,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Full Address'**
   String get fullAddress;
+
+  /// No description provided for @presentAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Present Address'**
+  String get presentAddress;
+
+  /// No description provided for @permanentAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent Address'**
+  String get permanentAddress;
+
+  /// No description provided for @sameAsPresentAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as present address'**
+  String get sameAsPresentAddress;
 
   /// No description provided for @question.
   ///

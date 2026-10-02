@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class Note {
@@ -47,16 +47,6 @@ class Note {
 }
 
 class NotesService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   final http.Client _client;
   NotesService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -77,7 +67,7 @@ class NotesService {
     if (subject != null) params['subject'] = subject;
     if (type != null) params['type'] = type;
 
-    final uri = Uri.parse('$_baseUrl/notes').replace(queryParameters: params.isNotEmpty ? params : null);
+    final uri = Uri.parse('${ApiClient.baseUrl}/notes').replace(queryParameters: params.isNotEmpty ? params : null);
     final response = await _client.get(uri, headers: _headers(token: token));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -90,7 +80,7 @@ class NotesService {
 
   Future<Note?> getNoteById(int id, {String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/notes/$id'),
+      Uri.parse('${ApiClient.baseUrl}/notes/$id'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {

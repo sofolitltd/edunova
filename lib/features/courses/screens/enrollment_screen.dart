@@ -12,6 +12,7 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/app_scaffold.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../services/course_service.dart';
+import '../../../shared/services/notification_service.dart';
 
 class EnrollmentScreen extends ConsumerStatefulWidget {
   final int courseId;
@@ -19,15 +20,41 @@ class EnrollmentScreen extends ConsumerStatefulWidget {
   final String courseTitleBn;
   final int price;
   final String type;
+  final int? batchId;
+  final String batchClassLevel;
+  final List<String> batchDays;
+  final String batchStartTime;
+  final String batchEndTime;
+  final String batchSchedule;
+  final String batchShift;
+  final String batchCourseName;
+  final int admissionFee;
+  final int noteFee;
+  final int monthlyFee;
+  final int maxStudents;
 
   const EnrollmentScreen({
     super.key,
-    required this.courseId,
+    this.courseId = 0,
     required this.courseName,
     required this.courseTitleBn,
     required this.price,
     required this.type,
+    this.batchId,
+    this.batchClassLevel = '',
+    this.batchDays = const [],
+    this.batchStartTime = '',
+    this.batchEndTime = '',
+    this.batchSchedule = '',
+    this.batchShift = '',
+    this.batchCourseName = '',
+    this.admissionFee = 0,
+    this.noteFee = 0,
+    this.monthlyFee = 0,
+    this.maxStudents = 0,
   });
+
+  bool get isBatch => batchId != null;
 
   @override
   ConsumerState<EnrollmentScreen> createState() => _EnrollmentScreenState();
@@ -53,11 +80,20 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
   // Payment
   String _selectedPayment = '';
-  String _selectedMobileBanking = '';
   final _sentFromController = TextEditingController();
+  final _transactionIdController = TextEditingController();
+
+  // Promo code
+  final _promoController = TextEditingController();
+  bool _isApplyingPromo = false;
+  String? _promoError;
+  int _discountAmount = 0;
+  List<AvailablePromoCode> _availablePromoCodes = [];
 
   bool get _isOffline => widget.type == 'offline';
   int get _totalSteps => _isOffline ? 4 : 3;
+  int get _finalAmount =>
+      (widget.price - _discountAmount).clamp(0, widget.price);
 
   @override
   void initState() {
@@ -71,8 +107,19 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       _motherNameController.text = user.motherName;
       _motherMobileController.text = user.motherMobile;
       _notificationMobileController.text = user.notificationMobile;
-      _addressController.text = user.address;
+      _addressController.text = user.presentAddress;
     }
+    _loadAvailablePromoCodes();
+  }
+
+  Future<void> _loadAvailablePromoCodes() async {
+    try {
+      final promos = await CourseService().getAvailablePromoCodes(
+        courseId: widget.courseId,
+        batchId: widget.batchId,
+      );
+      if (mounted) setState(() => _availablePromoCodes = promos);
+    } catch (_) {}
   }
 
   @override
@@ -86,21 +133,14 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     _notificationMobileController.dispose();
     _addressController.dispose();
     _sentFromController.dispose();
+    _transactionIdController.dispose();
+    _promoController.dispose();
     super.dispose();
   }
 
   static const List<Map<String, String>> _paymentMethods = [
-    {'value': 'bkash', 'label': 'bKash', 'icon': '💎'},
-    {'value': 'nagad', 'label': 'Nagad', 'icon': '🟠'},
-    {'value': 'rocket', 'label': 'Rocket', 'icon': '🚀'},
-    {'value': 'cash', 'label': 'ক্যাশ', 'icon': '💵'},
-    {'value': 'card', 'label': 'কার্ড', 'icon': '💳'},
-  ];
-
-  static const List<Map<String, String>> _mobileBankingOptions = [
     {'value': 'bkash', 'label': 'bKash'},
     {'value': 'nagad', 'label': 'Nagad'},
-    {'value': 'rocket', 'label': 'Rocket'},
   ];
 
   void _nextStep() {
@@ -112,19 +152,11 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       _saveFamilyInfo();
       setState(() => _currentStep = 2);
     } else if (_currentStep == (_isOffline ? 2 : 1)) {
-      if (_selectedPayment.isEmpty) {
+      if (widget.type != 'free' && _selectedPayment.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('পেমেন্ট পদ্ধতি নির্বাচন করুন')),
         );
         return;
-      }
-      if (widget.type != 'free' && _selectedPayment != 'cash' && _selectedPayment != 'card') {
-        if (_selectedMobileBanking.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('মোবাইল ব্যাংকিং সিলেক্ট করুন')),
-          );
-          return;
-        }
       }
       _submitEnrollment();
     }
@@ -138,16 +170,53 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
   void _saveFamilyInfo() {
     try {
-      ref.read(authProvider.notifier).updateProfile(
+      ref
+          .read(authProvider.notifier)
+          .updateProfile(
             fullName: _nameController.text.trim(),
             fatherName: _fatherNameController.text.trim(),
             fatherMobile: _fatherMobileController.text.trim(),
             motherName: _motherNameController.text.trim(),
             motherMobile: _motherMobileController.text.trim(),
             notificationMobile: _notificationMobileController.text.trim(),
-            address: _addressController.text.trim(),
+            presentAddress: _addressController.text.trim(),
           );
     } catch (_) {}
+  }
+
+  Future<void> _applyPromoCode() async {
+    final code = _promoController.text.trim();
+    if (code.isEmpty) return;
+    final mobile = _mobileController.text.trim();
+    if (mobile.isEmpty) {
+      setState(() => _promoError = 'প্রথমে মোবাইল নম্বর দিন');
+      return;
+    }
+
+    setState(() {
+      _isApplyingPromo = true;
+      _promoError = null;
+    });
+
+    try {
+      final result = await CourseService().validatePromoCode(
+        code: code,
+        mobile: mobile,
+        courseId: widget.courseId,
+        batchId: widget.batchId,
+        amount: widget.price,
+      );
+      setState(() {
+        _discountAmount = result.discountAmount;
+        _isApplyingPromo = false;
+      });
+    } catch (e) {
+      setState(() {
+        _discountAmount = 0;
+        _promoError = e.toString();
+        _isApplyingPromo = false;
+      });
+    }
   }
 
   Future<void> _submitEnrollment() async {
@@ -157,10 +226,19 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       final service = CourseService();
       await service.enroll(
         courseId: widget.courseId,
+        batchId: widget.batchId,
         fullName: _nameController.text.trim(),
         mobile: _mobileController.text.trim(),
-        amount: widget.price,
+        amount: _finalAmount,
+        promoCode: _promoController.text.trim(),
+        paymentMethod: _selectedPayment.isNotEmpty ? 'digital' : null,
+        mobileBanking: _selectedPayment,
+        sentFrom: _sentFromController.text.trim(),
+        transactionId: _transactionIdController.text.trim(),
       );
+      if (widget.batchId != null) {
+        NotificationService().subscribeToBatch(widget.batchId!);
+      }
       setState(() {
         _isSubmitting = false;
         _currentStep = _totalSteps - 1;
@@ -181,10 +259,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppAppBar(
-        title: 'এনরোলমেন্ট',
-        showBackButton: _currentStep < 2,
-      ),
+      appBar: AppAppBar(title: 'এনরোলমেন্ট', showBackButton: _currentStep < 2),
       body: Column(
         children: [
           // ── Step Indicator ────────────────
@@ -213,10 +288,11 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
   // ── Step Indicator ──────────────────────
   Widget _buildStepIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 10),
       color: Theme.of(context).cardColor,
       child: _isOffline
           ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _stepDot(1, _currentStep >= 0, 'তথ্য'),
                 _stepLine(_currentStep >= 1),
@@ -228,6 +304,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
               ],
             )
           : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _stepDot(1, _currentStep >= 0, 'তথ্য'),
                 _stepLine(_currentStep >= 1),
@@ -257,7 +334,9 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                 : Text(
                     '$step',
                     style: TextStyle(
-                      color: isActive ? Colors.white : AppColors.textTertiaryFor(context),
+                      color: isActive
+                          ? Colors.white
+                          : AppColors.textTertiaryFor(context),
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -270,7 +349,9 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: isActive ? AppColors.primary : AppColors.textTertiaryFor(context),
+            color: isActive
+                ? AppColors.primary
+                : AppColors.textTertiaryFor(context),
           ),
         ),
       ],
@@ -279,12 +360,15 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
   Widget _stepLine(bool isActive) {
     return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.primary : AppColors.borderFor(context),
-          borderRadius: BorderRadius.circular(1),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 15),
+        child: Container(
+          height: 2,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary : AppColors.borderFor(context),
+            borderRadius: BorderRadius.circular(1),
+          ),
         ),
       ),
     );
@@ -299,40 +383,54 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: AppSpacing.lg),
-
-            // Course Summary
-            _buildCourseSummary(),
-            const SizedBox(height: AppSpacing.xxl),
-
             Text('আপনার তথ্য', style: AppTextStyles.h3(context)),
             const SizedBox(height: AppSpacing.lg),
 
-            AppTextField(
-              controller: _nameController,
-              label: 'পুরো নাম',
-              prefixIcon: Icon(Icons.person_rounded, size: 20,
-                  color: AppColors.textTertiaryFor(context)),
-              keyboardType: TextInputType.name,
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'নাম দিন';
-                if (v.trim().length < 3) return 'নাম কমপক্ষে ৩ অক্ষর';
-                return null;
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderFor(context)),
+              ),
+              child: Column(
+                children: [
+                  AppTextField(
+                    controller: _nameController,
+                    label: 'পুরো নাম',
+                    prefixIcon: Icon(
+                      Icons.person_rounded,
+                      size: 20,
+                      color: AppColors.textTertiaryFor(context),
+                    ),
+                    keyboardType: TextInputType.name,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'নাম দিন';
+                      if (v.trim().length < 3) return 'নাম কমপক্ষে ৩ অক্ষর';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
 
-            AppTextField(
-              controller: _mobileController,
-              label: 'মোবাইল নম্বর',
-              prefixIcon: Icon(Icons.phone_rounded, size: 20,
-                  color: AppColors.textTertiaryFor(context)),
-              keyboardType: TextInputType.phone,
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'মোবাইল নম্বর দিন';
-                if (v.trim().length < 10) return 'সঠিক মোবাইল নম্বর দিন';
-                return null;
-              },
+                  AppTextField(
+                    controller: _mobileController,
+                    label: 'মোবাইল নম্বর',
+                    prefixIcon: Icon(
+                      Icons.phone_rounded,
+                      size: 20,
+                      color: AppColors.textTertiaryFor(context),
+                    ),
+                    keyboardType: TextInputType.phone,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'মোবাইল নম্বর দিন';
+                      }
+                      if (v.trim().length < 10) return 'সঠিক মোবাইল নম্বর দিন';
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -356,16 +454,23 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
               decoration: BoxDecoration(
                 color: AppColors.warning.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.2),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, size: 20, color: AppColors.warning),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 20,
+                    color: AppColors.warning,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'অফলাইন কোর্সের জন্য পরিবারের তথ্য আবশ্যক',
-                      style: AppTextStyles.bodySmall(context).copyWith(fontWeight: FontWeight.w500),
+                      style: AppTextStyles.bodySmall(context)
+                          .copyWith(fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -468,8 +573,6 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppSpacing.lg),
-
           // Amount
           if (widget.type != 'free') ...[
             Container(
@@ -483,11 +586,23 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                 children: [
                   Text(
                     'পেমেন্ট পরিমাণ',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 4),
+                  if (_discountAmount > 0)
+                    Text(
+                      '৳${widget.price}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 16,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
                   Text(
-                    '৳${widget.price}',
+                    '৳$_finalAmount',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
@@ -497,80 +612,138 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.lg),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderFor(context)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_availablePromoCodes.isNotEmpty) ...[
+                    Text(
+                      'এই কোর্সের জন্য প্রোমো কোড',
+                      style: AppTextStyles.bodySmall(context).copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondaryFor(context),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _availablePromoCodes.map((promo) {
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _promoController.text = promo.code;
+                            _applyPromoCode();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  promo.code,
+                                  style: AppTextStyles.bodyMedium(context)
+                                      .copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primary,
+                                      ),
+                                ),
+                                Text(
+                                  promo.remaining != null
+                                      ? '${promo.label} • বাকি ${promo.remaining}'
+                                      : promo.label,
+                                  style: AppTextStyles.bodySmall(context)
+                                      .copyWith(
+                                        color: AppColors.textTertiaryFor(
+                                          context,
+                                        ),
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  AppTextField(
+                    controller: _promoController,
+                    label: 'প্রোমো কোড (ঐচ্ছিক)',
+                    prefixIcon: Icon(
+                      Icons.local_offer_outlined,
+                      size: 20,
+                      color: AppColors.textTertiaryFor(context),
+                    ),
+                    inputFormatters: [UpperCaseTextFormatter()],
+                    suffixIcon: TextButton(
+                      onPressed: _isApplyingPromo ? null : _applyPromoCode,
+                      child: _isApplyingPromo
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              _discountAmount > 0
+                                  ? 'প্রয়োগ হয়েছে'
+                                  : 'প্রয়োগ করুন',
+                            ),
+                    ),
+                  ),
+                  if (_promoError != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      _promoError!,
+                      style: AppTextStyles.bodySmall(context)
+                          .copyWith(color: AppColors.error),
+                    ),
+                  ],
+                  if (_discountAmount > 0) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '৳$_discountAmount ছাড় প্রয়োগ হয়েছে',
+                      style: AppTextStyles.bodySmall(context).copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
             const SizedBox(height: AppSpacing.xl),
           ],
 
-          Text('পেমেন্ট পদ্ধতি', style: AppTextStyles.h3(context)),
-          const SizedBox(height: AppSpacing.md),
-
-          // Payment Methods Grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: _paymentMethods.length,
-            itemBuilder: (context, index) {
-              final method = _paymentMethods[index];
-              final isSelected = _selectedPayment == method['value'];
-
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  setState(() {
-                    _selectedPayment = method['value']!;
-                    _selectedMobileBanking = '';
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary.withValues(alpha: 0.08)
-                        : Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.borderFor(context),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(method['icon']!, style: const TextStyle(fontSize: 28)),
-                      const SizedBox(height: 6),
-                      Text(
-                        method['label']!,
-                        style: AppTextStyles.bodyMedium(context).copyWith(
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimaryFor(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Mobile Banking Options (show if bkash/nagad/rocket selected)
-          if (widget.type != 'free' &&
-              _selectedPayment != 'cash' &&
-              _selectedPayment != 'card' &&
-              _selectedPayment.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            Text('মোবাইল ব্যাংকিং', style: AppTextStyles.h3(context)),
+          if (widget.type != 'free') ...[
+            Text('পেমেন্ট পদ্ধতি', style: AppTextStyles.h3(context)),
             const SizedBox(height: AppSpacing.md),
-            ..._mobileBankingOptions.map((option) {
-              final isSelected = _selectedMobileBanking == option['value'];
+
+            ..._paymentMethods.map((method) {
+              final isSelected = _selectedPayment == method['value'];
               return GestureDetector(
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  setState(() => _selectedMobileBanking = option['value']!);
+                  setState(() => _selectedPayment = method['value']!);
                 },
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -581,7 +754,9 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                         : Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.borderFor(context),
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.borderFor(context),
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -592,20 +767,30 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                         height: 20,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isSelected ? AppColors.primary : Colors.transparent,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.transparent,
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : AppColors.textTertiaryFor(context),
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textTertiaryFor(context),
                           ),
                         ),
                         child: isSelected
-                            ? const Icon(Icons.check, size: 14, color: Colors.white)
+                            ? const Icon(
+                                Icons.check,
+                                size: 14,
+                                color: Colors.white,
+                              )
                             : null,
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        option['label']!,
+                        method['label']!,
                         style: AppTextStyles.bodyMedium(context).copyWith(
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -614,15 +799,41 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
               );
             }),
 
-            // Sent From
-            const SizedBox(height: AppSpacing.md),
-            AppTextField(
-              controller: _sentFromController,
-              label: 'যে নম্বর থেকে পাঠানো হয়েছে',
-              prefixIcon: Icon(Icons.send_rounded, size: 20,
-                  color: AppColors.textTertiaryFor(context)),
-              keyboardType: TextInputType.phone,
-            ),
+            if (_selectedPayment.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.borderFor(context)),
+                ),
+                child: Column(
+                  children: [
+                    AppTextField(
+                      controller: _sentFromController,
+                      label: 'যে নম্বর থেকে পাঠানো হয়েছে',
+                      prefixIcon: Icon(
+                        Icons.phone_android_rounded,
+                        size: 20,
+                        color: AppColors.textTertiaryFor(context),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
+                      controller: _transactionIdController,
+                      label: 'ট্রানজেকশন আইডি',
+                      prefixIcon: Icon(
+                        Icons.confirmation_number_outlined,
+                        size: 20,
+                        color: AppColors.textTertiaryFor(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -650,7 +861,10 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                     height: 100,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [AppColors.success, AppColors.success.withValues(alpha: 0.8)],
+                        colors: [
+                          AppColors.success,
+                          AppColors.success.withValues(alpha: 0.8),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -676,12 +890,13 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
             Text(
               'এনরোলমেন্ট সম্পন্ন!',
-              style: AppTextStyles.h1(context).copyWith(color: AppColors.success),
+              style: AppTextStyles.h1(context)
+                  .copyWith(color: AppColors.success),
             ),
             const SizedBox(height: AppSpacing.md),
 
             Text(
-              'আপনার এনরোলমেন্ট সফলভাবে জমা দেওয়া হয়েছে।\nঅ্যাডমিন অনুমোদনের পর আপনি কোর্সে প্রবেশ করতে পারবেন।',
+              'আপনার এনরোলমেন্ট সফলভাবে জমা দেওয়া হয়েছে।\nআমরা ২৪ ঘণ্টার মধ্যে আপনার তথ্য যাচাই করে অনুমোদন দিয়ে দেব।',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium(context).copyWith(
                 color: AppColors.textSecondaryFor(context),
@@ -697,16 +912,22 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
               decoration: BoxDecoration(
                 color: AppColors.success.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: AppColors.success.withValues(alpha: 0.2),
+                ),
               ),
               child: Column(
                 children: [
-                  _detailRow('কোর্স', widget.courseTitleBn.isNotEmpty ? widget.courseTitleBn : widget.courseName),
+                  _detailRow(
+                    'কোর্স',
+                    widget.courseTitleBn.isNotEmpty
+                        ? widget.courseTitleBn
+                        : widget.courseName,
+                  ),
                   const SizedBox(height: 8),
                   if (widget.type != 'free')
-                    _detailRow('পরিমাণ', '৳${widget.price}'),
-                  if (widget.type != 'free')
-                    const SizedBox(height: 8),
+                    _detailRow('পরিমাণ', '৳$_finalAmount'),
+                  if (widget.type != 'free') const SizedBox(height: 8),
                   _detailRow('নাম', _nameController.text.trim()),
                   const SizedBox(height: 8),
                   _detailRow('মোবাইল', _mobileController.text.trim()),
@@ -719,10 +940,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
             ),
             const SizedBox(height: AppSpacing.xxl),
 
-            AppButton(
-              text: 'হোমে ফিরুন',
-              onPressed: () => context.go('/home'),
-            ),
+            AppButton(text: 'হোমে ফিরুন', onPressed: () => context.go('/home')),
           ],
         ),
       ),
@@ -735,66 +953,18 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       children: [
         Text(
           label,
-          style: AppTextStyles.bodySmall(context).copyWith(
-            color: AppColors.textSecondaryFor(context),
-          ),
+          style: AppTextStyles.bodySmall(context)
+              .copyWith(color: AppColors.textSecondaryFor(context)),
         ),
         Flexible(
           child: Text(
             value,
-            style: AppTextStyles.bodyMedium(context).copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTextStyles.bodyMedium(context)
+                .copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.end,
           ),
         ),
       ],
-    );
-  }
-
-  // ── Course Summary ──────────────────────
-  Widget _buildCourseSummary() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: AppColors.gradientPrimary,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.courseTitleBn.isNotEmpty ? widget.courseTitleBn : widget.courseName,
-                  style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.type == 'free' ? 'ফ্রী কোর্স' : '৳${widget.price}',
-                  style: AppTextStyles.bodySmall(context).copyWith(
-                    color: widget.type == 'free' ? AppColors.success : AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -841,5 +1011,15 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
         ),
       ),
     );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

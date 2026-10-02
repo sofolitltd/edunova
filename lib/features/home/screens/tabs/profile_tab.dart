@@ -143,26 +143,56 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                     borderRadius: AppRadius.medium,
                     border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.warning_amber_rounded, size: 20, color: AppColors.warning),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'প্রোফাইল অসম্পূর্ণ',
-                              style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
+                      Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, size: 20, color: AppColors.warning),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'প্রোফাইল অসম্পূর্ণ',
+                                  style: AppTextStyles.bodyMedium(context).copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  'ট্যাপ করে সম্পূর্ণ করুন',
+                                  style: AppTextStyles.bodySmall(context),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'ট্যাপ করে সম্পূর্ণ করুন',
-                              style: AppTextStyles.bodySmall(context),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(AppRadius.full),
                             ),
-                          ],
+                            child: Text(
+                              '${user.profileCompletionPercent}%',
+                              style: AppTextStyles.label(context).copyWith(
+                                color: AppColors.warning,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.warning),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        child: LinearProgressIndicator(
+                          value: user.profileCompletionPercent / 100,
+                          minHeight: 6,
+                          backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                          valueColor: const AlwaysStoppedAnimation(AppColors.warning),
                         ),
                       ),
-                      const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.warning),
                     ],
                   ),
                 ),
@@ -244,6 +274,16 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                 color: AppColors.textTertiaryFor(context),
               ),
               onTap: () => context.push('/edit-profile'),
+            ),
+            _buildSettingsTile(
+              context,
+              icon: Icons.menu_book_rounded,
+              title: 'সব কোর্স',
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textTertiaryFor(context),
+              ),
+              onTap: () => context.push('/courses'),
             ),
             _buildSettingsTile(
               context,

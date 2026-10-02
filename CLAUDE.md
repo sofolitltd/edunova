@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code generation rules
+
+**Read and follow [RULES.md](RULES.md) for every code change in this repo — it governs diff size, file structure, comments, and scope discipline. These rules are mandatory, not optional style suggestions.**
+
 ## Commands
 
 ```bash

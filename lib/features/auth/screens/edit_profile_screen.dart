@@ -39,7 +39,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   final _motherNameController = TextEditingController();
   final _motherMobileController = TextEditingController();
   final _notificationMobileController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _presentAddressController = TextEditingController();
+  final _permanentAddressController = TextEditingController();
+  bool _permanentSameAsPresent = false;
 
   @override
   void initState() {
@@ -58,8 +60,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _motherNameController.dispose();
     _motherMobileController.dispose();
     _notificationMobileController.dispose();
-    _addressController.dispose();
+    _presentAddressController.dispose();
+    _permanentAddressController.dispose();
     super.dispose();
+  }
+
+  void _toggleSameAsPresent(bool value) {
+    setState(() {
+      _permanentSameAsPresent = value;
+      if (value) {
+        _permanentAddressController.text = _presentAddressController.text;
+      }
+    });
   }
 
   void _loadProfile() {
@@ -76,7 +88,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       _motherNameController.text = user.motherName;
       _motherMobileController.text = user.motherMobile;
       _notificationMobileController.text = user.notificationMobile;
-      _addressController.text = user.address;
+      _presentAddressController.text = user.presentAddress;
+      _permanentAddressController.text = user.permanentAddress;
+      _permanentSameAsPresent =
+          user.presentAddress.isNotEmpty &&
+          user.presentAddress == user.permanentAddress;
     }
   }
 
@@ -85,20 +101,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     if (user == null) return;
 
     try {
-      await ref.read(authProvider.notifier).updateProfile(
-        fullName: _fullNameController.text.trim(),
-        fatherName: _fatherNameController.text.trim(),
-        fatherMobile: _fatherMobileController.text.trim(),
-        motherName: _motherNameController.text.trim(),
-        motherMobile: _motherMobileController.text.trim(),
-        notificationMobile: _notificationMobileController.text.trim(),
-        gender: _gender,
-        religion: _religion,
-        studentClass: _studentClass,
-        shift: _shift,
-        school: _schoolController.text.trim(),
-        address: _addressController.text.trim(),
-      );
+      final presentAddress = _presentAddressController.text.trim();
+      await ref
+          .read(authProvider.notifier)
+          .updateProfile(
+            fullName: _fullNameController.text.trim(),
+            fatherName: _fatherNameController.text.trim(),
+            fatherMobile: _fatherMobileController.text.trim(),
+            motherName: _motherNameController.text.trim(),
+            motherMobile: _motherMobileController.text.trim(),
+            notificationMobile: _notificationMobileController.text.trim(),
+            gender: _gender,
+            religion: _religion,
+            studentClass: _studentClass,
+            shift: _shift,
+            school: _schoolController.text.trim(),
+            presentAddress: presentAddress,
+            permanentAddress: _permanentSameAsPresent
+                ? presentAddress
+                : _permanentAddressController.text.trim(),
+          );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).profileSaved)),
@@ -106,9 +128,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       context.pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to save: $e')));
     }
   }
 
@@ -127,10 +148,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               color: AppColors.primary,
               borderRadius: AppRadius.small,
             ),
-            child: Text(
-              l10n.save,
-              style: AppTextStyles.buttonMedium(context),
-            ),
+            child: Text(l10n.save, style: AppTextStyles.buttonMedium(context)),
           ),
         ),
       ),
@@ -138,31 +156,33 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         children: [
           // ── Tab Bar ─────────────────────────────
           Container(
-            margin: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.screenHorizontal,
+            margin: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              0,
             ),
+            height: 48,
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: AppColors.surfaceFor(context),
-              borderRadius: AppRadius.medium,
+              borderRadius: BorderRadius.circular(AppRadius.full),
               border: Border.all(color: AppColors.borderFor(context)),
             ),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: AppRadius.medium,
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppRadius.full),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
-              labelColor: AppColors.primary,
+              labelColor: Colors.white,
               unselectedLabelColor: AppColors.textTertiaryFor(context),
-              labelStyle: AppTextStyles.label(context).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-              unselectedLabelStyle: AppTextStyles.label(context).copyWith(
-                fontSize: 12,
-              ),
+              labelStyle: AppTextStyles.label(context)
+                  .copyWith(fontWeight: FontWeight.w700, fontSize: 12),
+              unselectedLabelStyle: AppTextStyles.label(context)
+                  .copyWith(fontSize: 12),
               labelPadding: EdgeInsets.zero,
               tabs: [
                 Tab(text: l10n.personal),
@@ -175,10 +195,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildProfileTab(l10n),
-                _buildFamilyTab(l10n),
-              ],
+              children: [_buildProfileTab(l10n), _buildFamilyTab(l10n)],
             ),
           ),
         ],
@@ -192,193 +209,184 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   Widget _buildProfileTab(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
+        horizontal: AppSpacing.lg,
         vertical: AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Personal Section ───────────────────
-          _buildSectionHeader(l10n.personal, Icons.person_outline_rounded),
-          const SizedBox(height: AppSpacing.lg),
-
-          AppTextField(
-            controller: _fullNameController,
-            label: l10n.fullName,
-            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-            textInputAction: TextInputAction.next,
-            validator: (v) {
-              if (v == null || v.isEmpty) return l10n.enterFullName;
-              if (v.length < 3) return l10n.nameMinLength;
-              return null;
-            },
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          // ── Gender ─────────────────────────────
-          Text(
-            l10n.gender,
-            style: AppTextStyles.label(context).copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
+          _buildSectionCard(
+            title: l10n.personal,
+            icon: Icons.person_outline_rounded,
             children: [
-              Expanded(
-                child: _buildChoiceChip(
-                  label: l10n.male,
-                  icon: Icons.male_rounded,
-                  isSelected: _gender == 'male',
-                  onTap: () => setState(() => _gender = 'male'),
-                ),
+              AppTextField(
+                controller: _fullNameController,
+                label: l10n.fullName,
+                prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                textInputAction: TextInputAction.next,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return l10n.enterFullName;
+                  if (v.length < 3) return l10n.nameMinLength;
+                  return null;
+                },
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _buildChoiceChip(
-                  label: l10n.female,
-                  icon: Icons.female_rounded,
-                  isSelected: _gender == 'female',
-                  onTap: () => setState(() => _gender = 'female'),
-                ),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ── Gender ─────────────────────────
+              Text(
+                l10n.gender,
+                style: AppTextStyles.label(context)
+                    .copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  _buildChoiceChip(
+                    label: l10n.male,
+                    icon: Icons.male_rounded,
+                    isSelected: _gender == 'male',
+                    onTap: () => setState(() => _gender = 'male'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.female,
+                    icon: Icons.female_rounded,
+                    isSelected: _gender == 'female',
+                    onTap: () => setState(() => _gender = 'female'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ── Religion ───────────────────────
+              Text(
+                l10n.religion,
+                style: AppTextStyles.label(context)
+                    .copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  _buildChoiceChip(
+                    label: l10n.islam,
+                    isSelected: _religion == 'islam',
+                    onTap: () => setState(() => _religion = 'islam'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.hinduism,
+                    isSelected: _religion == 'hinduism',
+                    onTap: () => setState(() => _religion = 'hinduism'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.christianity,
+                    isSelected: _religion == 'christianity',
+                    onTap: () => setState(() => _religion = 'christianity'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.buddhism,
+                    isSelected: _religion == 'buddhism',
+                    onTap: () => setState(() => _religion = 'buddhism'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.other,
+                    isSelected: _religion == 'other',
+                    onTap: () => setState(() => _religion = 'other'),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          // ── Religion ───────────────────────────
-          Text(
-            l10n.religion,
-            style: AppTextStyles.label(context).copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              _buildChoiceChip(
-                label: l10n.islam,
-                isSelected: _religion == 'islam',
-                onTap: () => setState(() => _religion = 'islam'),
-              ),
-              _buildChoiceChip(
-                label: l10n.hinduism,
-                isSelected: _religion == 'hinduism',
-                onTap: () => setState(() => _religion = 'hinduism'),
-              ),
-              _buildChoiceChip(
-                label: l10n.christianity,
-                isSelected: _religion == 'christianity',
-                onTap: () => setState(() => _religion = 'christianity'),
-              ),
-              _buildChoiceChip(
-                label: l10n.buddhism,
-                isSelected: _religion == 'buddhism',
-                onTap: () => setState(() => _religion = 'buddhism'),
-              ),
-              _buildChoiceChip(
-                label: l10n.other,
-                isSelected: _religion == 'other',
-                onTap: () => setState(() => _religion = 'other'),
-              ),
-            ],
-          ),
-
-          // ── Divider ────────────────────────────
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-            child: Divider(height: 1),
-          ),
+          const SizedBox(height: AppSpacing.xl),
 
           // ── Academic Section ───────────────────
-          _buildSectionHeader(l10n.academic, Icons.school_outlined),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ── Class ──────────────────────────────
-          Text(
-            l10n.classLevel,
-            style: AppTextStyles.label(context).copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
+          _buildSectionCard(
+            title: l10n.academic,
+            icon: Icons.school_outlined,
             children: [
-              _buildChoiceChip(
-                label: l10n.classThree,
-                isSelected: _studentClass == '3',
-                onTap: () => setState(() => _studentClass = '3'),
+              // ── Class ──────────────────────────
+              Text(
+                l10n.classLevel,
+                style: AppTextStyles.label(context)
+                    .copyWith(fontWeight: FontWeight.w600),
               ),
-              _buildChoiceChip(
-                label: l10n.classFour,
-                isSelected: _studentClass == '4',
-                onTap: () => setState(() => _studentClass = '4'),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  _buildChoiceChip(
+                    label: l10n.classThree,
+                    isSelected: _studentClass == '3',
+                    onTap: () => setState(() => _studentClass = '3'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.classFour,
+                    isSelected: _studentClass == '4',
+                    onTap: () => setState(() => _studentClass = '4'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.classFive,
+                    isSelected: _studentClass == '5',
+                    onTap: () => setState(() => _studentClass = '5'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.classSix,
+                    isSelected: _studentClass == '6',
+                    onTap: () => setState(() => _studentClass = '6'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.classSeven,
+                    isSelected: _studentClass == '7',
+                    onTap: () => setState(() => _studentClass = '7'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.classEight,
+                    isSelected: _studentClass == '8',
+                    onTap: () => setState(() => _studentClass = '8'),
+                  ),
+                ],
               ),
-              _buildChoiceChip(
-                label: l10n.classFive,
-                isSelected: _studentClass == '5',
-                onTap: () => setState(() => _studentClass = '5'),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ── Shift ──────────────────────────
+              Text(
+                l10n.shift,
+                style: AppTextStyles.label(context)
+                    .copyWith(fontWeight: FontWeight.w600),
               ),
-              _buildChoiceChip(
-                label: l10n.classSix,
-                isSelected: _studentClass == '6',
-                onTap: () => setState(() => _studentClass = '6'),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  _buildChoiceChip(
+                    label: l10n.morning,
+                    icon: Icons.wb_sunny_rounded,
+                    isSelected: _shift == 'morning',
+                    onTap: () => setState(() => _shift = 'morning'),
+                  ),
+                  _buildChoiceChip(
+                    label: l10n.day,
+                    icon: Icons.brightness_5_rounded,
+                    isSelected: _shift == 'day',
+                    onTap: () => setState(() => _shift = 'day'),
+                  ),
+                ],
               ),
-              _buildChoiceChip(
-                label: l10n.classSeven,
-                isSelected: _studentClass == '7',
-                onTap: () => setState(() => _studentClass = '7'),
-              ),
-              _buildChoiceChip(
-                label: l10n.classEight,
-                isSelected: _studentClass == '8',
-                onTap: () => setState(() => _studentClass = '8'),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ── School ─────────────────────────
+              AppTextField(
+                controller: _schoolController,
+                label: l10n.school,
+                prefixIcon: const Icon(Icons.school_outlined, size: 20),
+                textInputAction: TextInputAction.next,
               ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          // ── Shift ──────────────────────────────
-          Text(
-            l10n.shift,
-            style: AppTextStyles.label(context).copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: _buildChoiceChip(
-                  label: l10n.morning,
-                  icon: Icons.wb_sunny_rounded,
-                  isSelected: _shift == 'morning',
-                  onTap: () => setState(() => _shift = 'morning'),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _buildChoiceChip(
-                  label: l10n.day,
-                  icon: Icons.brightness_5_rounded,
-                  isSelected: _shift == 'day',
-                  onTap: () => setState(() => _shift = 'day'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          // ── School ─────────────────────────────
-          AppTextField(
-            controller: _schoolController,
-            label: l10n.school,
-            prefixIcon: const Icon(Icons.school_outlined, size: 20),
-            textInputAction: TextInputAction.next,
           ),
         ],
       ),
@@ -391,72 +399,120 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   Widget _buildFamilyTab(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
+        horizontal: AppSpacing.lg,
         vertical: AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Father ─────────────────────────────
-          _buildSectionHeader(l10n.father, Icons.account_circle_rounded),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(
-            controller: _fatherNameController,
-            label: l10n.fatherName,
-            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-            textInputAction: TextInputAction.next,
+          _buildSectionCard(
+            title: l10n.father,
+            icon: Icons.account_circle_rounded,
+            children: [
+              AppTextField(
+                controller: _fatherNameController,
+                label: l10n.fatherName,
+                prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppTextField(
+                controller: _fatherMobileController,
+                label: l10n.fatherMobile,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          AppTextField(
-            controller: _fatherMobileController,
-            label: l10n.fatherMobile,
-            prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.xl),
 
           // ── Mother ─────────────────────────────
-          _buildSectionHeader(l10n.mother, Icons.account_circle_rounded),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(
-            controller: _motherNameController,
-            label: l10n.motherName,
-            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-            textInputAction: TextInputAction.next,
+          _buildSectionCard(
+            title: l10n.mother,
+            icon: Icons.account_circle_rounded,
+            children: [
+              AppTextField(
+                controller: _motherNameController,
+                label: l10n.motherName,
+                prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppTextField(
+                controller: _motherMobileController,
+                label: l10n.motherMobile,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          AppTextField(
-            controller: _motherMobileController,
-            label: l10n.motherMobile,
-            prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.xl),
 
           // ── Notification Mobile ─────────────────
-          _buildSectionHeader(l10n.notification, Icons.notifications_outlined),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(
-            controller: _notificationMobileController,
-            label: l10n.notificationMobile,
-            prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
+          _buildSectionCard(
+            title: l10n.notification,
+            icon: Icons.notifications_outlined,
+            children: [
+              AppTextField(
+                controller: _notificationMobileController,
+                label: l10n.notificationMobile,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.xl),
 
           // ── Address ────────────────────────────
-          _buildSectionHeader(l10n.address, Icons.location_on_outlined),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(
-            controller: _addressController,
-            label: l10n.fullAddress,
-            prefixIcon: const Icon(Icons.home_outlined, size: 20),
-            textInputAction: TextInputAction.done,
+          _buildSectionCard(
+            title: l10n.address,
+            icon: Icons.location_on_outlined,
+            children: [
+              AppTextField(
+                controller: _presentAddressController,
+                label: l10n.presentAddress,
+                prefixIcon: const Icon(Icons.home_outlined, size: 20),
+                textInputAction: TextInputAction.next,
+                onChanged: _permanentSameAsPresent
+                    ? (value) => setState(
+                        () => _permanentAddressController.text = value,
+                      )
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              GestureDetector(
+                onTap: () => _toggleSameAsPresent(!_permanentSameAsPresent),
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _permanentSameAsPresent,
+                      onChanged: (value) =>
+                          _toggleSameAsPresent(value ?? false),
+                      activeColor: AppColors.primary,
+                    ),
+                    Text(
+                      l10n.sameAsPresentAddress,
+                      style: AppTextStyles.bodyMedium(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppTextField(
+                controller: _permanentAddressController,
+                label: l10n.permanentAddress,
+                prefixIcon: const Icon(Icons.home_outlined, size: 20),
+                textInputAction: TextInputAction.done,
+                enabled: !_permanentSameAsPresent,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xxxxxl),
+          const SizedBox(height: AppSpacing.xxxxl),
         ],
       ),
     );
@@ -465,15 +521,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   // ═══════════════════════════════════════════════
   //  Shared Widgets
   // ═══════════════════════════════════════════════
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceFor(context),
+        borderRadius: AppRadius.medium,
+        border: Border.all(color: AppColors.borderFor(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title, icon),
+          const SizedBox(height: AppSpacing.lg),
+          ...children,
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
         Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: AppSpacing.sm),
-        Text(
-          title,
-          style: AppTextStyles.h3(context).copyWith(fontSize: 16),
-        ),
+        Text(title, style: AppTextStyles.h3(context).copyWith(fontSize: 16)),
       ],
     );
   }
@@ -498,7 +575,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               : AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(AppRadius.full),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderFor(context),
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.borderFor(context),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),

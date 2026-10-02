@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class VocabularyWord {
@@ -131,16 +131,6 @@ class PracticeStats {
 }
 
 class PracticeService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   final http.Client _client;
   PracticeService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -152,7 +142,7 @@ class PracticeService {
 
   Future<List<VocabularyWord>> getFlashcards(String? token) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/practice/flashcards'),
+      Uri.parse('${ApiClient.baseUrl}/practice/flashcards'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -164,7 +154,7 @@ class PracticeService {
 
   Future<void> reviewFlashcard(String? token, int wordId) async {
     await _client.post(
-      Uri.parse('$_baseUrl/practice/flashcards/review'),
+      Uri.parse('${ApiClient.baseUrl}/practice/flashcards/review'),
       headers: _headers(token),
       body: jsonEncode({'word_id': wordId}),
     );
@@ -172,7 +162,7 @@ class PracticeService {
 
   Future<List<QuizQuestion>> getQuiz(String? token, {int count = 5}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/practice/quiz?count=$count'),
+      Uri.parse('${ApiClient.baseUrl}/practice/quiz?count=$count'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -184,7 +174,7 @@ class PracticeService {
 
   Future<QuizAttemptResult> submitQuizAttempt(String? token, int wordId, String selectedText) async {
     final response = await _client.post(
-      Uri.parse('$_baseUrl/practice/quiz/attempt'),
+      Uri.parse('${ApiClient.baseUrl}/practice/quiz/attempt'),
       headers: _headers(token),
       body: jsonEncode({'word_id': wordId, 'selected_text': selectedText}),
     );
@@ -200,7 +190,7 @@ class PracticeService {
 
   Future<List<SentenceExercise>> getSentenceExercises(String? token) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/practice/sentences'),
+      Uri.parse('${ApiClient.baseUrl}/practice/sentences'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -212,7 +202,7 @@ class PracticeService {
 
   Future<String> submitSentenceAttempt(String? token, int exerciseId, String answer) async {
     final response = await _client.post(
-      Uri.parse('$_baseUrl/practice/sentences/attempt'),
+      Uri.parse('${ApiClient.baseUrl}/practice/sentences/attempt'),
       headers: _headers(token),
       body: jsonEncode({'exercise_id': exerciseId, 'answer': answer}),
     );
@@ -225,7 +215,7 @@ class PracticeService {
 
   Future<PracticeStats> getStats(String? token) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/practice/stats'),
+      Uri.parse('${ApiClient.baseUrl}/practice/stats'),
       headers: _headers(token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {

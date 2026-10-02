@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import '../../../shared/services/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class DailyContentItem {
@@ -41,16 +41,6 @@ class DailyContentItem {
 }
 
 class DailyContentService {
-  static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8080/api';
-      default:
-        return 'http://localhost:8080/api';
-    }
-  }
-
   final http.Client _client;
   DailyContentService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -64,7 +54,7 @@ class DailyContentService {
     final params = <String, String>{};
     if (contentType != null) params['content_type'] = contentType;
 
-    final uri = Uri.parse('$_baseUrl/daily-content').replace(
+    final uri = Uri.parse('${ApiClient.baseUrl}/daily-content').replace(
       queryParameters: params.isNotEmpty ? params : null,
     );
     final response = await _client.get(uri, headers: _headers(token: token));
@@ -79,7 +69,7 @@ class DailyContentService {
 
   Future<int> getStreak({String? token}) async {
     final response = await _client.get(
-      Uri.parse('$_baseUrl/daily-content/streak'),
+      Uri.parse('${ApiClient.baseUrl}/daily-content/streak'),
       headers: _headers(token: token),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -91,7 +81,7 @@ class DailyContentService {
 
   Future<void> markContentViewed(int contentId, {String? token}) async {
     await _client.post(
-      Uri.parse('$_baseUrl/daily-content/$contentId/view'),
+      Uri.parse('${ApiClient.baseUrl}/daily-content/$contentId/view'),
       headers: _headers(token: token),
     );
   }
